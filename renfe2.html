@@ -1,0 +1,1485 @@
+<html>
+<script language='JavaScript'>
+ var Intervalo=100;
+ var FactorIntervalo=1000/Intervalo;
+ var Parado=true;
+ var VelocidadActual=0;
+ var PotenciaGenerada=0;
+ var PotenciaConsumida=0;
+ var Distancia=0;
+ var DistanciaOtroTren=50;
+ var VelocidadOtroTren=50;
+ var TiempoDeAccion=1;
+ var DistanciaDeAccion=0;
+ var RampaAngulo=0;
+ var RampaDistancia=2000;
+ var RampaAnguloFinal=0;
+ var TramoSiguienteDistancia=2000;
+ var TramoSiguienteRadioFinal=0;
+ var TramoDistancia=0;
+ var TramoRadioActual=0;
+ var TramoRadioFinal=0;
+ var CoordenadaX=0;
+ var CoordenadaY=0;
+ var Rumbo=Math.PI/4;
+ var RampaTiempo=0;
+ var Aceleracion=0;
+ var VelocidadDeseada=0;
+ var VelocidadSobrepasada=0;
+ var Trayecto=[];
+ var NumeroDeSemaforos=20;
+ var MemoriaUltimaSenal=0;
+ var MemoriaUltimaASFA="";
+ var MemoriaUltimaATC="";
+ var MemoriaUltimaATCfrenado="";
+ var MemoriaUltimaETCS="";
+ var MemoriaUltimaETCStramo="";
+ var MemoriaUltimaETCSgiro="";
+ var MemoriaUltimaSYS="";
+ var MensajeUltimaASFA="";
+ var MensajeUltimaATC="";
+ var MensajeUltimaATCfrenado="";
+ var MensajeUltimaETCS="";
+ var MensajeUltimaETCStramo="";
+ var MensajeUltimaETCSgiro="";
+ var MensajeUltimaSYS="";
+ var MemoriaUltimaVelocidad=140;
+ var MemoriaUltimoLimite=140;
+ var MemoriaSiguienteLimite=140;
+ var MemoriaUltimoSemaforo="A";
+ var FrecuenciaASFA=0;
+ var TiempoTranscurrido=0;
+ var TiempoEnEstacion=0;
+ var TiempoHombreMuerto=60;
+ var EstadoHombreMuerto=false;
+ var beepHecho=false;
+ var TrayectoSemaforos=0;
+ var TrayectoEstaciones=0;
+ var TrayectoDistancia=0;
+ var TrayectoTiempoEstimado=0;
+ var TrayectoUltimaVelocidad=MemoriaUltimaVelocidad;
+ var TrayectoAnteriorDistancia=0;
+ var MemoriaAvisoInicioMarcha=false;
+ var TiempoDeInicioMarcha=0;
+ var CadenaDebug="";
+ var LimiteSV=140;
+ var LimiteSeV=100;
+ var LimiteSVA=80;
+ var LimiteSeVA=60;
+ var LimiteSA=60;
+ var LimiteSeA=40;
+ var LimiteSR=0;
+ var LimiteSeR=0;
+ var LimiteSVetcs=120;
+ var LimiteSRprev=30;
+ var LimiteSRaprox=5;
+ var ParadaEnEstacionProxima=-1;
+ var RebaseEnSemaforoProximo=-1;
+ 
+ function Trayecto_Rellena() {
+  var Id,T,Tp=2,mTp=2,K,V;
+  var Kilometro=2000;
+  var AnteriorSemaforo="V";
+  var AnteriorLimite=80;
+  var Texto="";
+
+  Trayecto[1]=new Array(10,"S","V",1); Texto=Texto +"<br>#1. 10: Semaforo [V]";
+  Trayecto[2]=new Array(100,"V",50,2); Texto=Texto +"<br>#2. 100: Limite [50]";
+  Trayecto[3]=new Array(1000,"Se","V",4); Texto=Texto +"<br>#3. 100: Semaforo estacion [V]";
+  Trayecto[4]=new Array(1500,"E",50,5); Texto=Texto +"<br>#4. 1500: Estacion 50km/h";
+  Trayecto[5]=new Array(2000,"S","V",6); Texto=Texto +"<br>#5. 2000: Semaforo [V]";
+  Trayecto[6]=new Array(3000,"V",AnteriorLimite,3); Texto=Texto +"<br>#6. 3000: Limite ["+ AnteriorLimite +"]";
+
+  TrayectoTiempoEstimado+=(Trayecto[2][0]-TrayectoAnteriorDistancia)/TrayectoUltimaVelocidad; TrayectoUltimaVelocidad=Trayecto[2][2]/3.6; TrayectoAnteriorDistancia=Trayecto[2][0];
+  TrayectoTiempoEstimado+=(Trayecto[4][0]-TrayectoAnteriorDistancia)/TrayectoUltimaVelocidad; TrayectoUltimaVelocidad=Trayecto[4][2]/3.6; TrayectoAnteriorDistancia=Trayecto[4][0];
+  TrayectoTiempoEstimado+=(Trayecto[6][0]-TrayectoAnteriorDistancia)/TrayectoUltimaVelocidad; TrayectoUltimaVelocidad=Trayecto[6][2]/3.6; TrayectoAnteriorDistancia=Trayecto[6][0];
+  
+  for(Id=7;Id<=NumeroDeSemaforos;Id++) {
+   if(Tp==1 || Tp==2 || Tp==5) { while(Tp==mTp) { Tp=Math.floor(Math.random()*3+1); if(mTp==1) mTp=10; else if(mTp==5) mTp=3; } }
+   else if(Tp>=3) { K=500; Tp++; }
+   if(Tp<=3) K=Math.floor(Math.random()*9000+1000);
+   mTp=Tp; 
+   Kilometro+=K;
+   TrayectoDistancia+=K;
+   if(Tp==1 || Tp==3 || Tp==5) {
+    T="S";
+    TrayectoSemaforos++;
+    if(Tp==3) T="Se";
+    V=AnteriorSemaforo;
+   } else if(Tp==4) {
+    TrayectoEstaciones++;
+    T="E";
+    V=30+(Math.floor(Math.random()*5+1)*10);
+   } else if(Tp==2) {
+    T="V";
+    if(AnteriorLimite==30) AnteriorLimite=80;
+    else if(AnteriorLimite==80) AnteriorLimite=120;
+    else if(AnteriorLimite==120) AnteriorLimite=140;
+    else if(AnteriorLimite==140) AnteriorLimite=100;
+    else if(AnteriorLimite==100) AnteriorLimite=80;
+    V=AnteriorLimite;
+   }
+   Trayecto[Id]=new Array(Kilometro,T,V,Id);
+   if(T=="V") {
+    TrayectoTiempoEstimado+=(Trayecto[Id][0]-TrayectoAnteriorDistancia)/TrayectoUltimaVelocidad;
+    TrayectoUltimaVelocidad=Trayecto[Id][2]/3.6;
+    TrayectoAnteriorDistancia=Trayecto[Id][0];
+   } else if(T=="E") {
+    TrayectoTiempoEstimado+=(Trayecto[Id][0]-500-TrayectoAnteriorDistancia)/TrayectoUltimaVelocidad;
+    TrayectoTiempoEstimado+=500/(Trayecto[Id][2]/3.6);
+    TrayectoUltimaVelocidad=Trayecto[Id][2]/3.6;
+    TrayectoAnteriorDistancia=Trayecto[Id][0];
+   }
+   if(Id<20) {
+    Texto=Texto +"<br>#"+ Id +". "+ Kilometro +": ";
+    if(T=="S") Texto=Texto +"Semaforo ["+ V +"]";
+    else if(T=="Se") Texto=Texto +"Semaforo estacion ["+ V +"]";
+    else if(T=="V") Texto=Texto +"Se&ntilde;al "+ V +"km/h";
+    else if(T=="E") Texto=Texto +"Estacion "+ V +"km/h";
+    else Texto=Texto +T+"?";
+   } else if(Id==10) Texto=Texto +"<br>...";
+   if(Kilometro<500000 && Id==NumeroDeSemaforos) NumeroDeSemaforos++;
+  }
+  if(document.getElementById("veritinerario").checked)  {
+   Texto="Creado trayecto de "+ Math.floor(Kilometro/1000) +" kilometros,<br> con "+ Math.floor(TrayectoEstaciones) +" estaciones y con "+ Math.floor(NumeroDeSemaforos) +" se&ntilde;ales."+ Texto;
+   document.getElementById("panel3").innerHTML=Texto;
+  }
+ }
+
+ function Trayecto_SiguienteSemaforo() {
+  var Id;
+  var Kilometro=0;
+  var Retornar=false;
+
+  for(Id=1;Id<=NumeroDeSemaforos;Id++) {
+   var K=Trayecto[Id][0];
+   if(Distancia>=Kilometro && Distancia<=(K+20)) {
+    Retornar=[0,"","",0,0,"","",0,0,"","",0];
+    Retornar[0]=Trayecto[Id][0];
+    Retornar[1]=Trayecto[Id][1];
+    Retornar[2]=Trayecto[Id][2];
+    Retornar[3]=Trayecto[Id][3];
+    if((Trayecto[Id][1]=="S" || Trayecto[Id][1]=="Se") && DistanciaOtroTren<(Retornar[0]+20)) Retornar[2]="R";
+    if(Id+1<=NumeroDeSemaforos) {
+     Retornar[4]=Trayecto[Id+1][0];
+     Retornar[5]=Trayecto[Id+1][1];
+     Retornar[6]=Trayecto[Id+1][2];
+     Retornar[7]=Trayecto[Id+1][3];
+     if((Trayecto[Id+1][1]=="S" || Trayecto[Id+1][1]=="Se") && DistanciaOtroTren<(Retornar[4]+20)) Retornar[6]="R";
+     if(Id+2<=NumeroDeSemaforos) {
+      Retornar[8]=Trayecto[Id+2][0];
+      Retornar[9]=Trayecto[Id+2][1];
+      Retornar[10]=Trayecto[Id+2][2];
+      Retornar[11]=Trayecto[Id+2][3];
+     }
+    }
+    break;
+   }
+   Kilometro=K;
+  }
+  return Retornar;
+ }
+ 
+ function Trayecto_LugarActual(LongitudTren) {
+  var Id;
+  var Texto="";
+  var TrenInicio=Distancia;
+  var TrenFinal=Distancia-LongitudTren;
+
+  for(Id=1;Id<=NumeroDeSemaforos;Id++) {
+   var K=Trayecto[Id][0];
+   var T=Trayecto[Id][1];
+   var EstacionInicio=K-200;
+   var EstacionFinal=K+200;
+   
+   if(T=="E" && TrenFinal<EstacionFinal) {
+    var TrenEnEstacionCabeza=false;
+    var TrenEnEstacionCola=false;
+    if(TrenInicio>=EstacionInicio && TrenInicio<=EstacionFinal) TrenEnEstacionCabeza=true;
+    if(TrenFinal>=EstacionInicio && TrenFinal<=EstacionFinal) TrenEnEstacionCola=true;
+    if(TrenEnEstacionCabeza==true)
+     if(TrenEnEstacionCola==true) {
+      CadenaDebug=CadenaDebug +"<br>#202: Dentro de la estacion";
+      if(VelocidadActual==0 && ParadaEnEstacionProxima==1) ParadaEnEstacionProxima=-1;
+      Texto="Dentro de la estaci&oacute;n, hasta salir quedan "+ Math.round(EstacionFinal-TrenInicio) +" metros";
+     } else {
+      CadenaDebug=CadenaDebug +"<br>#206: Entrando en la estacion";
+      Texto="Tren entrando en la estaci&oacute;n, por entrar quedan "+ Math.round(EstacionInicio-TrenFinal) +" metros";
+     }
+    else if(TrenEnEstacionCola==true) {
+     CadenaDebug=CadenaDebug +"<br>#210: Saliendo de la estacion";
+     if(ParadaEnEstacionProxima==0) ParadaEnEstacionProxima=-1;
+     Texto="Tren saliendo de la estaci&oacute;n, por salir quedan "+ Math.round(EstacionFinal-TrenFinal) +" metros";
+     ParadaEnEstacionProxima=-1;
+    }
+    if(Texto=="") Texto="Pr&oacute;xima estaci&oacute;n "; else Texto=Texto +", ";
+    if(ParadaEnEstacionProxima==1) Texto=Texto +"con parada t&eacute;cnica";
+    else if(ParadaEnEstacionProxima==0) Texto=Texto +"sin parada";
+    else Texto=Texto +"?";
+   }
+   if(Texto!="") break;
+  }
+  document.getElementById("lugaractual").innerHTML=Texto;
+  var Recorrido=VelocidadActual/FactorIntervalo;
+  var Angulo=0;
+  if(TramoRadioActual!=0) Angulo=Recorrido/TramoRadioActual;
+  Rumbo+=Angulo;
+  CoordenadaX+=Recorrido*Math.sin(Rumbo);
+  CoordenadaY+=Recorrido*Math.cos(Rumbo);
+  Texto="Coordenadas X="+ Math.round(CoordenadaX) +" Y="+ Math.round(CoordenadaY) +" Rumbo="+ (Rumbo/Math.PI*180).toPrecision(4) +"&deg";
+  if(!document.getElementById("veritinerario").checked) document.getElementById("panel4").innerHTML=Texto;
+ }
+ 
+ function Control_ETCS_GSM(Panel) {
+  var Texto="<u><b>Proxima señal (ETCS/GSM-R):</b></u><br>";
+  var Semaforo=Trayecto_SiguienteSemaforo();
+  MemoriaUltimaETCS="";
+  if(Semaforo!=false) {
+   var ControlDesaceleracionNecesaria1=0,ControlDesaceleracionNecesaria2=0,ControlDesaceleracionNecesaria3=0;
+   var ControlVelocidadFinal1=-1,ControlVelocidadFinal2=-1,ControlVelocidadFinal3=-1;
+   var ControlEvento1="",ControlEvento2="",ControlEvento3="";
+   var K1=Semaforo[0],K2=K1,K3=K1;
+   var T1=Semaforo[1],T2=T1,T3=T1;
+   var V1=Semaforo[2],V2=V1,V3=V1;
+   if(T1=="S" || T1=="Se") {
+    ControlEvento1=T1 + V1;
+    if(T1=="Se" && V1=="R" && RebaseEnSemaforoProximo==1) ControlEvento1=ControlEvento1 +"*";
+    ControlEvento1=ControlEvento1 +":";
+    MemoriaUltimaETCS="Semaforo ";
+    Texto=Texto +"Semaforo ";
+    if(T1=="Se") { Texto=Texto +"estacion "; MemoriaUltimaETCS+="estacion "; if(RebaseEnSemaforoProximo!=-1 && V1!="R") RebaseEnSemaforoProximo=-1; }
+    if(T1=="Se" && V1=="R" && RebaseEnSemaforoProximo==-1) RebaseEnSemaforoProximo=Math.floor(Math.random()*2);
+    Texto=Texto +"(#"+ Semaforo[3] +").<br>";
+    Texto=Texto +"Estado: ";
+    if(V1=="V") { Texto=Texto +"VERDE"; MemoriaUltimaETCS+="VERDE"; if(document.getElementById("verproxima").checked) { if(T1=="Se") MemoriaSiguienteLimite=LimiteSeV; else MemoriaSiguienteLimite=LimiteSV; } }
+    if(V1=="V+A") { Texto=Texto +"VERDE+AMARILLO"; MemoriaUltimaETCS+="VERDE+AMARILLO"; if(document.getElementById("verproxima").checked) { if(T1=="Se") MemoriaSiguienteLimite=LimiteSeVA; else MemoriaSiguienteLimite=LimiteSVA; } }
+    if(V1=="A") { Texto=Texto +"AMARILLO"; MemoriaUltimaETCS+="AMARILLO"; if(document.getElementById("verproxima").checked) { if(T1=="Se") MemoriaSiguienteLimite=LimiteSeA; else MemoriaSiguienteLimite=LimiteSA; } }
+    if(V1=="R") { Texto=Texto +"ROJO"; MemoriaUltimaETCS+="ROJO"; if(document.getElementById("verproxima").checked) { if(T1=="Se" && RebaseEnSemaforoProximo==1) { Texto=Texto +" con rebase permitido *(ETCS+/ATC)"; MemoriaSiguienteLimite=LimiteSeR; } else MemoriaSiguienteLimite=LimiteSR; } }
+    Texto=Texto +"<br>";
+    Texto=Texto +"Distancia: "+ Math.round(K1-Distancia) +" metros.";
+   } else if(T1=="V") {
+    ControlEvento1=T1 +":";
+    MemoriaUltimaETCS="Limite "+ V1 +"km/h";
+    Texto=Texto +"Limite (#"+ Semaforo[3] +").<br>";
+    Texto=Texto + V1 +"km/h.<br>";
+    Texto=Texto +"Distancia: "+ Math.round(K1-Distancia) +" metros.";
+    if(document.getElementById("verproxima").checked) MemoriaSiguienteLimite=V1;
+    K2=Semaforo[4];
+    T2=Semaforo[5];
+    V2=Semaforo[6];
+   } else if(T1=="E") {
+    if(ParadaEnEstacionProxima==1) V1=30;
+    ControlEvento1=T1; if(ParadaEnEstacionProxima==1) ControlEvento1=ControlEvento1 +"*";
+    ControlEvento1=ControlEvento1 +":";
+    MemoriaUltimaETCS="Estacion "+ V1 +"km/h";
+    Texto=Texto +"Estacion.<br>";
+    Texto=Texto + V1 +"km/h.<br>";
+    Texto=Texto +"Distancia: "+ Math.round(K1-Distancia) +" metros.";
+    if(document.getElementById("verproxima").checked) MemoriaSiguienteLimite=V1;
+    K2=Semaforo[4];
+    T2=Semaforo[5];
+    V2=Semaforo[6];
+   }
+   if((T1=="Se" || T1=="E") && ParadaEnEstacionProxima==-1) ParadaEnEstacionProxima=Math.floor(Math.random()*2);
+   ControlVelocidadFinal1=MemoriaSiguienteLimite;
+   if((MemoriaSiguienteLimite/3.6)<VelocidadActual && VelocidadActual>0 && (K1-Distancia)>=0) ControlDesaceleracionNecesaria1=((MemoriaSiguienteLimite/3.6)-VelocidadActual)/(Math.max(1,(K1-500)-Distancia)/VelocidadActual);
+   if(T2=="S" || T2=="Se") {
+    if(document.getElementById("controletcs").checked && (K2-Distancia)>5) {
+     var CamibadoLimite=false;
+     if(V2=="A" && (MemoriaUltimoSemaforo=="A" || MemoriaUltimoSemaforo=="R")) { MemoriaUltimoSemaforo="V+A"; CamibadoLimite=true; if(T2=="Se") MemoriaUltimoLimite=LimiteSeVA; else MemoriaUltimoLimite=LimiteSVA; }
+     if(V2=="V+A" && (MemoriaUltimoSemaforo=="V+A" || MemoriaUltimoSemaforo=="A")) { MemoriaUltimoSemaforo="V"; CamibadoLimite=true; if(T2=="Se") MemoriaUltimoLimite=LimiteSVA; else MemoriaUltimoLimite=LimiteSeV; }
+     if(V2=="V" && (MemoriaUltimoSemaforo=="V" || MemoriaUltimoSemaforo=="V+A" || MemoriaUltimoSemaforo=="A")) { MemoriaUltimoSemaforo="V*"; CamibadoLimite=true; if(T2=="Se") MemoriaUltimoLimite=LimiteSeV; else MemoriaUltimoLimite=LimiteSVetcs; }
+     if(CamibadoLimite==true) {
+      if(MemoriaUltimaATC=="") MemoriaUltimaATC="nuevo limite por semaforo a "+ MemoriaUltimoLimite +"km/h";
+      CadenaDebug=CadenaDebug +"<br>#287: Ultimo-Limite="+ MemoriaUltimoLimite +"km/h";
+     }
+    }
+   }
+   if(VelocidadActual>0 && (K1-Distancia)>=0) Texto=Texto +" Tiempo: "+ Math.round((K1-Distancia)/VelocidadActual) +"s.";
+   Texto=Texto +"<br>";
+   if(MemoriaUltimaETCS!="") MemoriaUltimaETCS="Pr&oacute;ximo; "+ MemoriaUltimaETCS +" en el "+ (K1/1000).toPrecision(2) +"km.";
+   if(TiempoDeInicioMarcha<100) TiempoDeInicioMarcha=Math.round(Math.random()*40)+100;
+   if(Math.round(TiempoTranscurrido)>=TiempoDeInicioMarcha && MemoriaAvisoInicioMarcha==false) {
+    MemoriaUltimaETCS="<font color='green'><b>Via libre; orden de inicio de marcha</b></font>";
+    MemoriaAvisoInicioMarcha=true;
+   }
+   if(((T1=="S" || (T1=="Se" && RebaseEnSemaforoProximo==0)) && V1=="R")==false) {
+    var MemoriaSiguienteLimite2=-1;
+    K2=Semaforo[4];
+    T2=Semaforo[5];
+    V2=Semaforo[6];
+    Texto=Texto +"<br><b>Siguiente: </b> ";
+    if(T2=="S" || T2=="Se") {
+     ControlEvento2=T2 + V2;
+     if(T2=="Se" && V2=="R" && RebaseEnSemaforoProximo==1) ControlEvento2=ControlEvento2 +"*";
+     ControlEvento2=ControlEvento2 +":";
+     Texto=Texto +"Semaforo";
+     if(T2=="Se") Texto=Texto +" estacion";
+     if(T2=="Se" && V1=="R" && RebaseEnSemaforoProximo==-1) RebaseEnSemaforoProximo=Math.floor(Math.random()*2);
+     Texto=Texto +": ";
+     if(V2=="V") { Texto=Texto +"VERDE"; if(T2=="Se") MemoriaSiguienteLimite2=LimiteSeV; else MemoriaSiguienteLimite2=LimiteSV; }
+     if(V2=="V+A") { Texto=Texto +"VERDE+AMARILLO"; if(T2=="Se") MemoriaSiguienteLimite2=LimiteSeVA; else MemoriaSiguienteLimite2=LimiteSVA; }
+     if(V2=="A") { Texto=Texto +"AMARILLO"; if(T2=="Se") MemoriaSiguienteLimite2=LimiteSeA; else MemoriaSiguienteLimite2=LimiteSA; }
+     if(V2=="R") { Texto=Texto +"ROJO"; if(T2=="Se" && RebaseEnSemaforoProximo==1) { Texto=Texto +"*"; MemoriaSiguienteLimite2=LimiteSeR; } else MemoriaSiguienteLimite2=LimiteSR; }
+    } else if(T2=="V") {
+     ControlEvento2=T2 +":";
+     Texto=Texto +"Limite ";
+     Texto=Texto + V2 +"km/h.";
+     MemoriaSiguienteLimite2=MemoriaUltimoLimite2=V2;
+    } else if(T2=="E") {
+     if(ParadaEnEstacionProxima==1) V2=30;
+     ControlEvento2=T2; if(ParadaEnEstacionProxima==1) ControlEvento2=ControlEvento2 +"*";
+     ControlEvento2=ControlEvento2  +":";
+     Texto=Texto +"Estacion ";
+     Texto=Texto + V2 +"km/h.";
+     MemoriaSiguienteLimite2=MemoriaUltimoLimite2=V2;
+    }
+    if((T2=="Se" || T2=="E") && ParadaEnEstacionProxima==-1) ParadaEnEstacionProxima=Math.floor(Math.random()*2);
+    ControlVelocidadFinal2=MemoriaSiguienteLimite2;
+    Texto=Texto +" a "+ Math.round(K2-Distancia) +" metros.";
+    if((MemoriaSiguienteLimite2/3.6)<VelocidadActual && VelocidadActual>0 && (K2-Distancia)>=0) ControlDesaceleracionNecesaria2=((MemoriaSiguienteLimite2/3.6)-VelocidadActual)/(Math.max(1,(K2-500)-Distancia)/VelocidadActual);
+    if(((T1=="S" || T1=="Se") && V1=="R")==false && ((T2=="S"  || (T2=="Se" && RebaseEnSemaforoProximo==0)) && V2=="R")==false) {
+     var MemoriaSiguienteLimite3=-1;
+     K3=Semaforo[8];
+     T3=Semaforo[9];
+     V3=Semaforo[10];
+     if(T3=="S" || T3=="Se") {
+      if(T3=="Se" && V1=="R" && RebaseEnSemaforoProximo==-1) RebaseEnSemaforoProximo=Math.floor(Math.random()*2);
+      ControlEvento3=T3 + V3;
+      if(T3=="Se" && V3=="R" && RebaseEnSemaforoProximo==1) ControlEvento3=ControlEvento3 +"*";
+      ControlEvento3=ControlEvento3 +":";
+      if(V3=="V") { if(T3=="Se") MemoriaSiguienteLimite3=LimiteSeV; else MemoriaSiguienteLimite3=LimiteSV; }
+      else if(V3=="V+A") { if(T3=="Se") MemoriaSiguienteLimite3=LimiteSeVA; else MemoriaSiguienteLimite3=LimiteSVA; }
+      else if(V3=="A") { if(T3=="Se") MemoriaSiguienteLimite3=LimiteSeA; else MemoriaSiguienteLimite3=LimiteSA; }
+      else if(V3=="R") { if(T3=="Se" && RebaseEnSemaforoProximo==1) MemoriaSiguienteLimite3=LimiteSeR; else MemoriaSiguienteLimite3=LimiteSR; }
+     } else {
+      if(T3=="E" && ParadaEnEstacionProxima==1) V3=30;
+      ControlEvento3=T3; if(ParadaEnEstacionProxima==1) ControlEvento3=ControlEvento3 +"*";
+      ControlEvento3=ControlEvento3 +":";
+      ControlVelocidadFinal3=MemoriaSiguienteLimite3=Number(V3);
+     }
+     if((T3=="Se" || T3=="E") && ParadaEnEstacionProxima==-1) ParadaEnEstacionProxima=Math.floor(Math.random()*2);
+     ControlVelocidadFinal3=MemoriaSiguienteLimite3;
+     if((MemoriaSiguienteLimite3/3.6)<VelocidadActual && VelocidadActual>0 && (K3-Distancia)>=0) ControlDesaceleracionNecesaria3=((MemoriaSiguienteLimite3/3.6)-VelocidadActual)/(Math.max(1,(K3-500)-Distancia)/VelocidadActual);
+    }
+   } else Texto=Texto +"<br>No hay informacion de la siguiente...";
+   Texto=Texto +"<br><b>Curva de frenado: </b>";
+   Texto=Texto +"<b>1<sup>a</sup>= </b>"+ ControlEvento1;
+   if(ControlDesaceleracionNecesaria1<-0.1 && ControlDesaceleracionNecesaria1>-10 && VelocidadActual>Math.max(8.33,Math.round(ControlVelocidadFinal1/3.6))) Texto=Texto + ControlDesaceleracionNecesaria1.toPrecision(3) +"m/s<sup>2</sup>";
+   else if(ControlVelocidadFinal1>=0) Texto=Texto + ControlVelocidadFinal1 +"km/h"; else Texto=Texto + "?";
+   Texto=Texto +", <b>2<sup>a</sup>= </b>"+ ControlEvento2;
+   if(ControlDesaceleracionNecesaria2<-0.1 && ControlDesaceleracionNecesaria2>-10 && VelocidadActual>Math.max(8.33,Math.round(ControlVelocidadFinal2/3.6))) Texto=Texto + ControlDesaceleracionNecesaria2.toPrecision(3) +"m/s<sup>2</sup>";
+   else if(ControlVelocidadFinal2>=0) Texto=Texto + ControlVelocidadFinal2 +"km/h"; else Texto=Texto + "?";
+   Texto=Texto +", <b>3<sup>a</sup>= </b>"+ ControlEvento3;
+   if(ControlDesaceleracionNecesaria3<-0.1 && ControlDesaceleracionNecesaria3>-10 && VelocidadActual>Math.max(8.33,Math.round(ControlVelocidadFinal3/3.6))) Texto=Texto + ControlDesaceleracionNecesaria3.toPrecision(3) +"m/s<sup>2</sup>";
+   else if(ControlVelocidadFinal3>=0) Texto=Texto + ControlVelocidadFinal3 +"km/h"; else Texto=Texto + "?";
+   if(document.getElementById("curvadefrenado").checked) {
+    if(ControlDesaceleracionNecesaria1<-0.2 || ControlDesaceleracionNecesaria2<-0.2 || ControlDesaceleracionNecesaria3<-0.2) {
+     var ValorVelocidadDeseada=Number(document.getElementById("velocidaddeseada").value);
+     var nuevoValorVelocidadDeseada=ValorVelocidadDeseada;
+     if(ValorVelocidadDeseada>=30) {
+      var Decremento=1;
+      if(ControlDesaceleracionNecesaria1<-0.3 || ControlDesaceleracionNecesaria2<-0.3 || ControlDesaceleracionNecesaria3<-0.3) Decremento=2;
+      if(((VelocidadActual*3.6)-ValorVelocidadDeseada)<=1) nuevoValorVelocidadDeseada=Math.min(ValorVelocidadDeseada-Decremento,Math.round(VelocidadActual*3.6));
+      else nuevoValorVelocidadDeseada=Math.min(ValorVelocidadDeseada,Math.round(VelocidadActual*3.6)-Decremento);
+      if(nuevoValorVelocidadDeseada!=ValorVelocidadDeseada) {
+       document.getElementById("velocidaddeseada").value=nuevoValorVelocidadDeseada;
+       CadenaDebug=CadenaDebug +"<br>#376: Velocidad-Deseada="+ nuevoValorVelocidadDeseada +"km/h";
+       MemoriaUltimaATCfrenado="Curva de frenado ";
+       if(ControlDesaceleracionNecesaria1<-0.2) MemoriaUltimaATCfrenado=MemoriaUltimaATCfrenado +"1<sup>a</sup>";
+       else if(ControlDesaceleracionNecesaria2<-0.2) MemoriaUltimaATCfrenado=MemoriaUltimaATCfrenado +"2<sup>a</sup>";
+       else if(ControlDesaceleracionNecesaria3<-0.2) MemoriaUltimaATCfrenado=MemoriaUltimaATCfrenado +"3<sup>a</sup>";
+       MemoriaUltimaATCfrenado=MemoriaUltimaATCfrenado +": nueva velocidad a "+ nuevoValorVelocidadDeseada +"km/h. (final ";
+       if(ControlDesaceleracionNecesaria1<-0.2) MemoriaUltimaATCfrenado=MemoriaUltimaATCfrenado + ControlVelocidadFinal1;
+       else if(ControlDesaceleracionNecesaria2<-0.2) MemoriaUltimaATCfrenado=MemoriaUltimaATCfrenado + ControlVelocidadFinal2;
+       else if(ControlDesaceleracionNecesaria3<-0.2) MemoriaUltimaATCfrenado=MemoriaUltimaATCfrenado + ControlVelocidadFinal3;
+        MemoriaUltimaATCfrenado=MemoriaUltimaATCfrenado +"km/h.)";
+      }
+     } else MemoriaUltimaATCfrenado=="";
+    } else MemoriaUltimaATCfrenado=="";
+   } else MemoriaUltimaATCfrenado=="";
+  } else {
+   Texto="No hay informacion de la proxima se&ntilde;al...";
+  }
+  if(Panel!="") {
+   if(document.getElementById("verproxima").checked) document.getElementById(Panel).innerHTML=Texto;
+   else document.getElementById(Panel).innerHTML="";
+  }
+ }
+
+ function Trayecto_VerSiguiente(Panel) {
+  var Texto="<u><b>Memoria/Vision:</b></u>";
+  var Semaforo=Trayecto_SiguienteSemaforo();
+  if(!document.getElementById("controlasfa").checked) MemoriaUltimaASFA="DESCONECTADO"; else MemoriaUltimaASFA="Esperando...";
+  if(Semaforo!=false) {
+   var K=Semaforo[0];
+   var T=Semaforo[1];
+   var V=Semaforo[2];
+   var D=Math.round(K-Distancia);
+
+   if(D>525) MemoriaUltimaSenal=0;
+   if(D<=525 && MemoriaUltimaSenal==0) MemoriaUltimaSenal=1;
+   if(D<=300 && MemoriaUltimaSenal==1) { MemoriaUltimaSenal=2; if((T=="S" || T=="Se") && document.getElementById("controlasfa").checked) beep(); }
+   if(D<=275 && MemoriaUltimaSenal==2) MemoriaUltimaSenal=3;
+   if(D<=125 && MemoriaUltimaSenal==3) MemoriaUltimaSenal=4;
+   if(D<=5   && MemoriaUltimaSenal==4) { MemoriaUltimaSenal=5; if((T=="S" || T=="Se") && document.getElementById("controlasfa").checked) beep(); }
+   if(D<=1   && MemoriaUltimaSenal==5) MemoriaUltimaSenal=6;
+   if((D>5 || D<=-20) && MemoriaUltimaSenal==6) MemoriaUltimaSenal=0;
+  }
+
+  Texto=Texto +"&nbsp;"+ MemoriaUltimaSenal +"<br>";
+  Texto=Texto +"&nbsp;Ultimo limite: "+ MemoriaUltimaVelocidad +"km/h, semaforo: ["+ MemoriaUltimoSemaforo +"]: "+ MemoriaUltimoLimite +"km/h <br>";
+  Texto=Texto +"&nbsp;Viendo: ";
+  if(MemoriaUltimaSenal<=0) { FrecuenciaASFA=0; if(document.getElementById("controlasfa").checked) MemoriaUltimaASFA=""; }
+  if(MemoriaUltimaSenal==1 && T=="E") Texto=Texto +"AVISO de Estacion";
+  if(MemoriaUltimaSenal==1 && (T=="S" || T=="Se")) { Texto=Texto +"AVISO 1 de Semaforo"; if(T=="Se") Texto=Texto +" estacion"; }
+  if(MemoriaUltimaSenal==1 && T=="V") Texto=Texto +"AVISO 1 de Limite";
+  if(MemoriaUltimaSenal==2 && (T=="S" || T=="Se") && document.getElementById("controlasfa").checked) {
+   MemoriaUltimaASFA="Baliza previa ["+ V +"]";
+   if(V=="V") FrecuenciaASFA=3;
+   if(V=="V+A" || V=="A") FrecuenciaASFA=1;
+   if(V=="R") {
+    MemoriaUltimoLimite=30;
+    FrecuenciaASFA=7;
+    CadenaDebug=CadenaDebug +"<br>#433: Ultimo-Limite="+ MemoriaUltimoLimite +"km/h, Frecuencia-ASFA=L"+ FrecuenciaASFA;
+    if(MemoriaUltimaATC=="") MemoriaUltimaATC="<font color='red'>nuevo limite por semaforo a "+ MemoriaUltimoLimite +"km/h</font>";
+   }
+  }
+  if(MemoriaUltimaSenal==3 && (T=="S" || T=="Se")) { Texto=Texto +"AVISO 2 de Semaforo"; if(T=="Se") Texto=Texto +" estacion"; }
+  if(MemoriaUltimaSenal==3 && T=="V") Texto=Texto +"AVISO 2 de Limite";
+  if(MemoriaUltimaSenal==4 && T!="E") Texto=Texto +"AVISO 3 de ";
+  if(MemoriaUltimaSenal==4 && (T=="S" || T=="Se")) { Texto=Texto +"Semaforo"; if(T=="Se") Texto=Texto +" estacion"; Texto=Texto +" ["+ V +"] a "+ D +" metros"; }
+  if(MemoriaUltimaSenal==4 && T=="E") Texto=Texto +"Estacion a "+ D +" metros";
+  if(MemoriaUltimaSenal==5 && (T=="S" || T=="Se") && document.getElementById("controlasfa").checked) {
+   if(V=="V") FrecuenciaASFA=3;
+   if(V=="V+A" || V=="A") FrecuenciaASFA=1;
+   if(V=="R") {
+    MemoriaUltimoLimite=30;
+    FrecuenciaASFA=8;
+    CadenaDebug=CadenaDebug +"<br>#448: Ultimo-Limite="+ MemoriaUltimoLimite +"km/h, Frecuencia-ASFA=L"+ FrecuenciaASFA;
+    if(MemoriaUltimaATC=="") MemoriaUltimaATC="<font color='red'>nuevo limite por semaforo a "+ MemoriaUltimoLimite +"km/h</font>";
+   }
+   MemoriaUltimaASFA="Baliza ["+ V +"]";
+  }
+  if(MemoriaUltimaSenal>=4 && T=="V") {
+   Texto=Texto +"Limite ["+ V +"km/h]";
+   if(MemoriaUltimaSenal==6 && (document.getElementById("controllzb").checked || document.getElementById("controletcs").checked)) {
+    MemoriaUltimaVelocidad=V;
+    CadenaDebug=CadenaDebug +"<br>#457: Ultima-Velocidad="+ MemoriaUltimaVelocidad +"km/h";
+    if(MemoriaUltimaATC=="") MemoriaUltimaATC="nuevo limite por se&ntilde;al a "+ MemoriaUltimaVelocidad +"km/h";
+   }
+  }
+  if(MemoriaUltimaSenal>=5 && (T=="S" || T=="Se") && (document.getElementById("controllzb").checked || document.getElementById("controletcs").checked)) {
+   Texto=Texto +"Semaforo ["+ V +"]";
+   if(T=="Se") Texto=Texto +" estacion";
+   if(MemoriaUltimaSenal==6) {
+    //MemoriaUltimaSenal=0;
+    if(V=="V") { if(T=="Se") MemoriaUltimoLimite=LimiteSeV; else MemoriaUltimoLimite=LimiteSV; }
+    else if(V=="V+A") { if(T=="Se") MemoriaUltimoLimite=LimiteSeVA; else MemoriaUltimoLimite=LimiteSVA; }
+    else if(V=="A") { if(T=="Se") MemoriaUltimoLimite=LimiteSeA; else MemoriaUltimoLimite=LimiteSA; }
+    else if(V=="R") { if(T=="Se") MemoriaUltimoLimite=LimiteSeR; else MemoriaUltimoLimite=LimiteSR; }
+    MemoriaUltimoSemaforo=V;
+    CadenaDebug=CadenaDebug +"<br>#471: Ultimo-Limite="+ MemoriaUltimoLimite +"km/h, Ultimo-Semaforo="+ MemoriaUltimoSemaforo;
+    if(MemoriaUltimaATC=="") MemoriaUltimaATC="nuevo limite por semaforo a "+ MemoriaUltimoSemaforo +"km/h";
+   }
+  }
+  if(MensajeUltimaASFA!=MemoriaUltimaASFA) {
+   NuevoMensaje(MemoriaUltimaASFA,"ASFA: ");
+   MensajeUltimaASFA=MemoriaUltimaASFA;
+  }
+  if(MensajeUltimaATC!=MemoriaUltimaATC) {
+   NuevoMensaje(MemoriaUltimaATC,"ATC: ");
+   MensajeUltimaATC=MemoriaUltimaATC;
+  }
+  if(MensajeUltimaATCfrenado!=MemoriaUltimaATCfrenado) {
+   NuevoMensaje(MemoriaUltimaATCfrenado,"ATC: ");
+   MensajeUltimaATCfrenado=MemoriaUltimaATCfrenado;
+  }
+  if(MensajeUltimaSYS!=MemoriaUltimaSYS) {
+   NuevoMensaje(MemoriaUltimaSYS,"SYS: ");
+   MensajeUltimaSYS=MemoriaUltimaSYS;
+  }
+  if(MemoriaUltimaETCS=="") MemoriaUltimaETCS="SIN MENSAJES RECIBIDOS";
+  if(MensajeUltimaETCS!=MemoriaUltimaETCS && document.getElementById("verproxima").checked) {
+   NuevoMensaje(MemoriaUltimaETCS,"ETCS: ");
+   MensajeUltimaETCS=MemoriaUltimaETCS;
+  } else if(!document.getElementById("verproxima").checked) MemoriaUltimaETCS="SIN MENSAJES RECIBIDOS";
+  if(MensajeUltimaETCStramo!=MemoriaUltimaETCStramo && document.getElementById("verproxima").checked) {
+   NuevoMensaje(MemoriaUltimaETCStramo,"ETCS: ");
+   MensajeUltimaETCStramo=MemoriaUltimaETCStramo;
+  }
+  if(MensajeUltimaETCSgiro!=MemoriaUltimaETCSgiro && document.getElementById("verproxima").checked) {
+   NuevoMensaje(MemoriaUltimaETCSgiro,"ETCS: ");
+   MensajeUltimaETCSgiro=MemoriaUltimaETCSgiro;
+  }
+  if(Panel!="") {
+   Texto=Texto +"<br>&nbsp;ASFA(L"+  FrecuenciaASFA +"): "+ MemoriaUltimaASFA;
+   Texto=Texto +"<br>&nbsp;ATC: "+ MemoriaUltimaATC;
+   Texto=Texto +"<br>&nbsp;ETCS: "+ MemoriaUltimaETCS
+   document.getElementById(Panel).innerHTML=Texto;
+  }
+ }
+
+ function Control_Automatico() {
+  if(document.getElementById("controletcs2").checked) {
+   LimiteSV=140;
+   LimiteSeV=140;
+   LimiteSVA=140;
+   LimiteSeVA=140;
+   LimiteSA=140;
+   LimiteSeA=140;
+   LimiteSR=0;
+   LimiteSeR=30;
+   LimiteSVetcs=140;
+   LimiteSRprev=30;
+   LimiteSRaprox=30;
+   document.getElementById("verproxima").checked=true;
+   document.getElementById("controletcs").checked=true;
+  } else {
+   LimiteSV=140;
+   LimiteSeV=100;
+   LimiteSVA=80;
+   LimiteSeVA=60;
+   LimiteSA=60;
+   LimiteSeA=40;
+   LimiteSR=0;
+   LimiteSeR=0;
+   LimiteSVetcs=120;
+   LimiteSRprev=30;
+   LimiteSRaprox=5;
+  }
+  //if(document.getElementById("controlasfa").checked ||
+  //   document.getElementById("controllzb").checked ||
+  //   document.getElementById("controletcs").checked) document.getElementById("controlatc").checked=true;
+  var VelocidadRampa=false;
+  var nuevaVelocidadActual=0;
+  var VelocidadMaxima=Number(document.getElementById("maximavelocidad").value);
+  if(document.getElementById("velocidaddeseada").value!="") nuevaVelocidadActual=Number(document.getElementById("velocidaddeseada").value);
+  var nuevaVelocidad=nuevaVelocidadActual;
+  var maximaVelocidad=MemoriaUltimaVelocidad;
+  if(maximaVelocidad>MemoriaUltimoLimite) maximaVelocidad=MemoriaUltimoLimite;
+  var VelocidadFinal=Math.min(nuevaVelocidad,VelocidadMaxima);
+  var Semaforo=Trayecto_SiguienteSemaforo();
+  MemoriaUltimaATC="";
+  if(Semaforo!=false) {
+   var K=Semaforo[0];
+   var T=Semaforo[1];
+   var V=Semaforo[2];
+   var D=Math.round(K-Distancia);
+   
+   if(D<525) {
+    if(T=="S" || T=="Se") {
+     if(V=="V") { if(T=="Se" && RebaseEnSemaforoProximo==1) VelocidadFinal=nuevaVelocidad=LimiteSeV; else VelocidadFinal=nuevaVelocidad=LimiteSV; }
+     else if(V=="V+A") { if(T=="Se" && RebaseEnSemaforoProximo==1) VelocidadFinal=nuevaVelocidad=LimiteSeVA; else VelocidadFinal=nuevaVelocidad=LimiteSVA; }
+     else if(V=="A") { if(T=="Se" && RebaseEnSemaforoProximo==1) VelocidadFinal=nuevaVelocidad=LimiteSeA; else VelocidadFinal=nuevaVelocidad=LimiteSA; }
+     else if(V=="R" && D>200) VelocidadFinal=nuevaVelocidad=LimiteSRprev;
+     else if(V=="R") { 
+      VelocidadRampa=true;
+      DistanciaDeParada=170;
+      VelocidadInicial=LimiteSRprev;
+      var VelocidadDeAproximacion=5;
+      if(T=="Se" && RebaseEnSemaforoProximo==1) { VelocidadFinal=LimiteSeR; VelocidadDeAproximacion=LimiteSRaprox; } else VelocidadFinal=LimiteSR;
+      if(D>20) nuevaVelocidad=Math.min(VelocidadInicial,Math.max(VelocidadDeAproximacion,parseInt((D/(DistanciaDeParada/(VelocidadInicial-VelocidadFinal))))));
+      else nuevaVelocidad=VelocidadFinal;
+      CadenaDebug=CadenaDebug +"<br>#574: Final="+ VelocidadFinal +"km/h, Aproximacion="+ VelocidadDeAproximacion +"km/h";
+      CadenaDebug=CadenaDebug +", Nueva="+ nuevaVelocidad +"km/h por SEMAFORO";
+     }
+     if(V!="R" || D>200) CadenaDebug=CadenaDebug +"<br>#577: Final="+ VelocidadFinal +"km/h, Nueva="+ nuevaVelocidad +"km/h por SEMAFORO";
+    } else if(T=="V") {
+     VelocidadFinal=nuevaVelocidad=V;
+     CadenaDebug=CadenaDebug +"<br>#580: Nueva-Velocidad="+ nuevaVelocidad +"km/h por LIMITE";
+    } else if(T=="E") {
+     VelocidadFinal=nuevaVelocidad=V;
+     CadenaDebug=CadenaDebug +"<br>#583: Nueva-Velocidad="+ nuevaVelocidad +"km/h por ESTACION";
+    }
+    if(D<5) MemoriaUltimaATC="";
+    else if(VelocidadRampa==true) MemoriaUltimaATC="<font color='red'>final "+ VelocidadFinal +"km/h</font> {";
+    else MemoriaUltimaATC="proxima a "+ nuevaVelocidad +"km/h {";
+    if(T=="S" || T=="Se") { MemoriaUltimaATC=MemoriaUltimaATC +"SEMAFORO ["+ V +"]"; if(T=="Se") MemoriaUltimaATC=MemoriaUltimaATC +" estacion"; }
+    else if(T=="V") MemoriaUltimaATC=MemoriaUltimaATC +"LIMITE ["+ V +"km/h]";
+    else if(T=="E") MemoriaUltimaATC=MemoriaUltimaATC +"ESTACION ["+ V +"km/h]";
+    if(D>=5) MemoriaUltimaATC=MemoriaUltimaATC +"}";
+    if(nuevaVelocidad>maximaVelocidad) {
+     nuevaVelocidad=maximaVelocidad;
+     CadenaDebug=CadenaDebug +"<br>#594: Nueva-Velocidad=Maxima-Velocidad ("+ nuevaVelocidad +"km/h)";
+    }
+   }
+  }
+  
+  if(document.getElementById("controlatc").checked) {
+   if(nuevaVelocidad<nuevaVelocidadActual) {
+    nuevaVelocidad=Math.min(nuevaVelocidad,VelocidadMaxima)
+    document.getElementById("velocidaddeseada").value=nuevaVelocidad;
+    CadenaDebug=CadenaDebug +"<br>#603: Nueva-Velocidad="+ nuevaVelocidad +"km/h";
+    if(VelocidadRampa==false) NuevoMensaje("Nueva velocidad a "+ nuevaVelocidad +"km/h ("+ nuevaVelocidadActual +")","ATC: ");
+   } else if(document.getElementById("velocidaddeseada").value!="" && document.getElementById("controlauto").checked) {
+    var nuevaVelocidadDeseada=Math.min(MemoriaUltimoLimite,MemoriaUltimaVelocidad,nuevaVelocidad,VelocidadMaxima);
+    if(nuevaVelocidadDeseada>nuevaVelocidadActual) {
+     document.getElementById("velocidaddeseada").value=nuevaVelocidadDeseada;
+     CadenaDebug=CadenaDebug +"<br>#609: Nueva-Velocidad="+ nuevaVelocidadDeseada +"km/h (AUTO)";
+     if(MemoriaUltimaATC=="") MemoriaUltimaATC="nueva velocidad a"+ nuevaVelocidadDeseada +"km/h (AUTO)";
+    }
+   }
+  } else MemoriaUltimaATC="<font color='red'>desconectado</font>";
+ }
+ 
+ function Trayecto_OtroTren() {
+  var Texto="";
+  var TextoOtro="";
+  var Id;
+  var M="R";
+  var Semaforo=Trayecto_SiguienteSemaforo();
+  var VelocidadFinal="?";
+  var Semaforo1=NumeroDeSemaforos,Semaforo2=NumeroDeSemaforos,Semaforo3=NumeroDeSemaforos,Semaforo4=NumeroDeSemaforos;
+  
+  for(Id=NumeroDeSemaforos;Id>=1;Id--) {
+   var K=Trayecto[Id][0];
+   var T=Trayecto[Id][1];
+   var V=Trayecto[Id][2];
+
+   if(Id>=Semaforo[3] && Id<(Semaforo[3]+11)) {
+    if(T=="S") Texto="Semaforo ["+ V +"]<br>"+ Texto;
+    else if(T=="Se") Texto="Semaforo estacion ["+ V +"]<br>"+ Texto;
+    else if(T=="V") Texto="Se&ntilde;al "+ V +"km/h<br>"+ Texto;
+    else if(T=="E") Texto="Estacion "+ V +"km/h<br>"+ Texto;
+    else Texto=T +"?<br>"+ Texto;
+    Texto="#"+ Id +". "+ K +": "+ Texto;
+   }
+
+   if((T=="S" || T=="Se") && DistanciaOtroTren<K) {
+    Semaforo4=Semaforo3;
+    Semaforo3=Semaforo2;
+    Semaforo2=Semaforo1;
+    Semaforo1=Id;
+    Trayecto[Semaforo4][2]="R";
+    Trayecto[Semaforo3][2]="A";
+    Trayecto[Semaforo2][2]="V+A";
+    Trayecto[Semaforo1][2]="V";
+   } else if((T=="S" || T=="Se") && DistanciaOtroTren>K) {
+    Trayecto[Id][2]=M;
+    if(M=="R") M="A";
+    else if(M=="A") M="V+A";
+    else if(M=="V+A") M="V";
+   } else if(T=="V" && DistanciaOtroTren>K && VelocidadFinal=="?") {
+    VelocidadFinal=V;
+    TextoOtro=TextoOtro +" [V="+  Math.round(VelocidadFinal) +"km/h]";
+   } else if(T=="E" && DistanciaOtroTren>(K-500) && DistanciaOtroTren<(K+50)) {
+    if(DistanciaOtroTren<K && VelocidadOtroTren>0) {
+     TiempoEnEstacion=120;
+     VelocidadFinal=Math.min(VelocidadOtroTren,10+(K-DistanciaOtroTren)/10);
+     TextoOtro=TextoOtro +" Frenado";
+    } else if(DistanciaOtroTren>=K && VelocidadOtroTren>0 && TiempoEnEstacion>0) {
+     VelocidadFinal=0;
+     TextoOtro=TextoOtro +" Parando";
+    } else if(DistanciaOtroTren>=K && (VelocidadOtroTren==0 || TiempoEnEstacion<=0)) {
+     if(TiempoEnEstacion<=0) { VelocidadFinal=30; TextoOtro=TextoOtro +" Arrancando"; }
+     else if(TiempoEnEstacion>0) { VelocidadFinal=0; TiempoEnEstacion-=(Intervalo/1000);  TextoOtro=TextoOtro +" Esperando "+  Math.round(TiempoEnEstacion) +"s."; }
+    }
+    TextoOtro=TextoOtro  +" ["+  Math.round(VelocidadFinal) +"km/h]";
+   }
+  }
+  if(VelocidadOtroTren<VelocidadFinal && VelocidadOtroTren<110) {
+   VelocidadOtroTren+=(1/FactorIntervalo);
+   if(VelocidadOtroTren>VelocidadFinal) VelocidadOtroTren=VelocidadFinal;
+   TextoOtro=TextoOtro +" + "+ Math.round(VelocidadOtroTren) +"<"+ Math.round(VelocidadFinal);
+  } else if(VelocidadOtroTren>VelocidadFinal || VelocidadOtroTren>110) {
+   VelocidadOtroTren-=(4/FactorIntervalo);
+   if(VelocidadOtroTren<VelocidadFinal) VelocidadOtroTren=VelocidadFinal;
+   TextoOtro=TextoOtro +" - "+ Math.round(VelocidadOtroTren) +">"+ Math.round(VelocidadFinal);
+  }
+  if(VelocidadOtroTren<0) VelocidadOtroTren=0;
+  else if(VelocidadOtroTren>110) VelocidadOtroTren=110;
+  if(Texto!="" && DistanciaOtroTren>1000) {
+   if(document.getElementById("veritinerario").checked) document.getElementById("panel3").innerHTML=Texto;
+   else {
+    var Cadena="";
+    var Hor=Math.floor(TrayectoTiempoEstimado/3600);
+    var Min=Math.floor((TrayectoTiempoEstimado-(Hor*3600))/60);
+    var Seg=Math.floor(TrayectoTiempoEstimado-(Hor*3600)-(Min*60));
+    if(Hor<10) Cadena=Cadena +"0"; Cadena=Cadena + Hor +":";
+    if(Min<10) Cadena=Cadena +"0"; Cadena=Cadena + Min +":";
+    if(Seg<10) Cadena=Cadena +"0"; Cadena=Cadena + Seg;
+    Texto="<b>Trayecto generado:</b><br>";
+    Texto=Texto + TrayectoSemaforos +" semaforos, "+ Math.round(TrayectoSemaforos-(TrayectoEstaciones*2)) +" intermedios.<br>";
+    Texto=Texto + TrayectoEstaciones +" estaciones, con semaforos de entrada y salida.<br>";
+    Texto=Texto + TrayectoDistancia +" metros de recorrido.<br>";
+    Texto=Texto + "Tiempo estimado de realizacion: "+ Cadena +"<br>";
+    Texto=Texto + "Velocidad media estimada: "+ Math.floor((TrayectoDistancia/1000)/(TrayectoTiempoEstimado/3600)) +"km/h.<br>";
+    document.getElementById("panel3").innerHTML=Texto;
+   }
+  }
+  if(TextoOtro!="" && document.getElementById("veritinerario").checked) document.getElementById("panel4").innerHTML=TextoOtro;
+  else document.getElementById("panel4").innerHTML="";
+  DistanciaOtroTren+=(VelocidadOtroTren/3.6/FactorIntervalo);
+ }
+
+ function Calculo() {
+  if(document.getElementById("pausa").checked) return;
+  if(document.getElementById("tiempox10").checked)  {
+   Intervalo=1000;
+  } else {
+   Intervalo=100;
+  }
+  FactorIntervalo=1000/Intervalo;
+  var Cadena="";
+  var Fuerza=0;
+  CadenaDebug="<b>Debug:</b>";
+  beepHecho=false;
+  MemoriaSiguienteLimite=Math.min(MemoriaUltimaVelocidad,MemoriaUltimoLimite);
+  
+  var PesoLocomotora=Number(document.getElementById("locomotora").value);
+  var Locomotoras=Number(document.getElementById("locomotoras").value);
+  var Vagones=Number(document.getElementById("vagones").value);
+  var FactorAdherencia=Number(document.getElementById("adherencia").value);
+  var FactorRozamiento=Number(document.getElementById("rozamiento").value);
+  var FactorAire=Number(document.getElementById("aire").value);
+  var PotenciaMaxima=Number(document.getElementById("potenciamaxima").value*1000);
+  var FuerzaMinima=Number(document.getElementById("fuerzaminima").value*1000);
+  var FuerzaMaxima=Number(document.getElementById("fuerzamaxima").value*1000);
+
+  var PotenciaMaxima=Number(document.getElementById("potenciamaxima").value)*1000;
+  var PotenciaActual=Number(document.getElementById("potenciaactual").value)*1000;
+  var PotenciaDeseada=Number(document.getElementById("potenciadeseada").value)*1000;
+
+  var FrenoAplicado=Number(document.getElementById("frenoaplicado").value)*1000;
+
+  var VelocidadReal=Number(document.getElementById("velocidadactual").value)/3.6;
+
+  PotenciaMaxima*=Locomotoras;
+  FuerzaMinima*=Locomotoras;
+  FuerzaMaxima*=Locomotoras;
+  FrenoAplicado*=(Locomotoras+(Vagones/10));
+
+  if(RampaDistancia>0) {
+   RampaDistancia-=(VelocidadActual/FactorIntervalo);
+   if(RampaDistancia<=0) RampaDistancia=0;
+   if(RampaAngulo<RampaAnguloFinal) {
+    RampaAngulo+=((0.002/FactorIntervalo)*(VelocidadActual/FactorIntervalo));
+    if(RampaAngulo>RampaAnguloFinal) RampaAngulo=RampaAnguloFinal;
+   } else if(RampaAngulo>RampaAnguloFinal) {
+    RampaAngulo-=((0.002/FactorIntervalo)*(VelocidadActual/FactorIntervalo));
+    if(RampaAngulo<RampaAnguloFinal) RampaAngulo=RampaAnguloFinal;
+   }
+  }
+  if(RampaDistancia==0) {
+   RampaDistancia=Math.random()*9000+1000;
+   if(RampaAngulo==0) RampaAnguloFinal=Math.round(Math.random()*100-50)/10;
+   else RampaAnguloFinal=0;
+  }
+  if(TramoDistancia>0) {
+   TramoDistancia-=(VelocidadActual/FactorIntervalo);
+   if(TramoDistancia<=0) TramoDistancia=0;
+   if(TramoRadioActual<TramoRadioFinal) {
+    TramoRadioActual+=((10000/FactorIntervalo)*(VelocidadActual/FactorIntervalo));
+    if(TramoRadioActual>TramoRadioFinal) TramoRadioActual=TramoRadioFinal;
+   } else if(TramoRadioActual>TramoRadioFinal) {
+    TramoRadioActual-=((10000/FactorIntervalo)*(VelocidadActual/FactorIntervalo));
+    if(TramoRadioActual<TramoRadioFinal) TramoRadioActual=TramoRadioFinal;
+   } 
+  }
+  if(TramoDistancia==0) {
+   if(Math.round(4.48*Math.sqrt(Math.abs(TramoRadioFinal)))<=140 && TramoRadioFinal!=0 && MensajeUltimaETCStramo==MemoriaUltimaETCStramo) {
+    MemoriaUltimaETCStramo="<font color='green'>finaliza curva con limite de velocidad a "+ Math.round(4.48*Math.sqrt(Math.abs(TramoRadioFinal))) +"km/h</font>";
+   }
+   TramoDistancia=TramoSiguienteDistancia;
+   TramoRadioFinal=TramoSiguienteRadioFinal;
+   if(TramoRadioFinal==0) {
+    TramoSiguienteRadioFinal=Math.round(Math.random()*50+1)*100;
+    if((Math.random()*2-1)<0) TramoSiguienteRadioFinal*=-1;
+    TramoSiguienteDistancia=Math.max(100,TramoDistancia/4);
+    TramoRadioActual=0;
+    if(Math.round(4.48*Math.sqrt(Math.abs(TramoSiguienteRadioFinal)))<=140 && MensajeUltimaETCStramo==MemoriaUltimaETCStramo) {
+     MemoriaUltimaETCStramo="<font color='red'>proxima curva de "+ Math.round(TramoSiguienteDistancia) +" metros";
+     MemoriaUltimaETCStramo=MemoriaUltimaETCStramo +" con radio de "+ Math.round(TramoSiguienteRadioFinal) +" metros";
+     MemoriaUltimaETCStramo=MemoriaUltimaETCStramo +" ("+ Math.round(4.48*Math.sqrt(Math.abs(TramoSiguienteRadioFinal))) +"km/h de m&aacute;ximo)</font>";
+    }
+   } else {
+    TramoSiguienteDistancia=Math.random()*900+100;
+    TramoSiguienteRadioFinal=0;
+    TramoRadioActual=10000;
+    if(TramoRadioFinal<0) TramoRadioActual=-10000;
+   }
+  }
+  if(VelocidadActual>0 && document.getElementById("controlhm").checked) {
+   RampaTiempo=Math.round(RampaDistancia/VelocidadActual);
+   TiempoHombreMuerto=Math.floor((TiempoHombreMuerto-(Intervalo/1000))*10)/10;
+   if(TiempoHombreMuerto<-5) { 
+    PonVelocidad(0);
+    if(VelocidadActual<=1.1) {
+     PonFreno(50000,false);
+     SinVelocidad();
+    }
+    if(EstadoHombreMuerto==false) NuevoMensaje("H.M.: <font color='#700000'><b>FRENADO DE EMERGENCIA</b></font>","");
+    EstadoHombreMuerto=true;
+   } else if(TiempoHombreMuerto<=0) {
+    if(document.getElementById("boton_HM").disabled==true) NuevoMensaje("H.M.: <b>boton activado</b>","");
+    document.getElementById("boton_HM").disabled=false;
+    beep();
+   }
+   //document.getElementById("avisos").innerHTML="H.M.: "+ TiempoHombreMuerto;
+  } else {
+   TiempoHombreMuerto=60;
+   document.getElementById("boton_HM").disabled=true;
+  }
+  
+  var Peso=(PesoLocomotora*Locomotoras)+(Vagones*40000);
+  var MasaLocomotora=(PesoLocomotora*Locomotoras)*9.80665;
+  var MasaVagon=(Vagones*40000)*9.80665;
+  var Masa=Peso*9.80665;
+  var Longitud=(18.9*Locomotoras)+(15*Vagones);
+  var EnergiaGenerada=0.5*Peso*(VelocidadActual*VelocidadActual);  // Julios
+  var FuerzaGenerada=0;
+  var FuerzaAdherencia=Masa*FactorAdherencia;
+  var FuerzaEmpuje=Masa*FactorRozamiento;
+  var FuerzaAire=(FactorAire*1.293*12*(VelocidadActual*VelocidadActual))/2;
+  var FuerzaRampa=Masa*Math.sin(RampaAngulo*Math.PI/180);
+  var FuerzaRampaFinal=Masa*Math.sin(RampaAnguloFinal*Math.PI/180);
+  var AceleracionMaxima=FuerzaAdherencia/Peso;
+
+  var FuerzaDeResistencia=0;
+  if(VelocidadReal==0) FuerzaDeResistencia+=FuerzaAdherencia; else FuerzaDeResistencia+=FuerzaEmpuje;
+  FuerzaDeResistencia+=FuerzaAire;
+  var FuerzaParaEmpuje=(FuerzaDeResistencia+FuerzaRampa);
+  var FuerzaParaEmpujeFinal=(FuerzaDeResistencia+FuerzaRampaFinal);
+  FuerzaDeResistencia+=FuerzaRampa;
+  FuerzaDeResistencia+=FrenoAplicado;
+  var PotenciaDeResistencia=FuerzaDeResistencia*VelocidadActual;
+
+  var AceleracionAdherencia=FuerzaAdherencia/Peso;
+  var AceleracionEmpuje=FuerzaEmpuje/Peso;
+  var AceleracionAire=FuerzaAire/Peso;
+  var AceleracionRampa=FuerzaRampa/Peso*-1;
+  var AceleracionDeResistencia=FuerzaDeResistencia/Peso*-1;
+
+  var TiempoDePaso=0;
+  if(VelocidadReal>0) TiempoDePaso=Longitud/VelocidadReal;
+
+  Cadena=Cadena +"Tren 140N de <i>"+ Math.round(Peso/1000) +"</i>Tn y <i>"+ Longitud +"</i> metros. (<i>"+ Math.round(TiempoDePaso) +"</i>s de paso). Masa: <i>"+ Math.round(Masa/1000) +"kN</i><br>";
+  Cadena=Cadena +"Fuerza necesaria para arrancar: <i>"+ Math.round(FuerzaAdherencia) +"</i>N (<i>-"+ AceleracionAdherencia.toPrecision(4) +"</i>m/s<sup>2</sup>), ";
+  Cadena=Cadena +"para empuje: <i>"+ Math.round(FuerzaEmpuje) +"</i>N (<i>-"+ AceleracionEmpuje.toPrecision(4) +"</i>m/s<sup>2</sup>)<br>";
+  Cadena=Cadena +"Fuerza necesaria por el aire: <i>"+ Math.round(FuerzaAire) +"</i>N (<i>-"+ AceleracionAire.toPrecision(4) +"</i>m/s<sup>2</sup>).";
+  Cadena=Cadena +" Fuerza lateral m&aacute;xima: <i>"+ Math.round(PesoLocomotora*1.00) +"</i>N ("+ ((PesoLocomotora*1.0)/(PesoLocomotora*9.80665)).toPrecision(2) +")";
+  Cadena=Cadena +" y <i>"+ Math.round(40000*1.0) +"</i>N ("+ ((40000*1.00)/(40000*9.80665)).toPrecision(2) +")<br>";
+  Cadena=Cadena +"Fuerza necesaria por la rampa: <i>"+ Math.round(FuerzaRampa) +"</i>N (<i>"+ AceleracionRampa.toPrecision(4) +"</i>m/s<sup>2</sup>)&nbsp;&nbsp; Tramo con <i>"+ RampaAngulo.toPrecision(2) +"</i>&deg;/<i>"+ (Math.sin(RampaAngulo*(Math.PI/180))*100).toPrecision(2) +"</i>% (final de <i>"+ RampaAnguloFinal.toPrecision(2) +"</i>&deg;/<i>"+ (Math.sin(RampaAnguloFinal*(Math.PI/180))*100).toPrecision(2) +"</i>%) de <i>"+ Math.round(RampaDistancia) +"</i> metros en <i>"+ RampaTiempo +"</i>s.<br>";
+  Cadena=Cadena +"Tramo";
+  if(TramoRadioActual!=0) {
+   Cadena=Cadena +" con radio actual de "+ Math.round(TramoRadioActual) +" metros";
+   Cadena=Cadena +" ("+ Math.round(4.48*Math.sqrt(Math.max(Math.abs(TramoRadioActual),Math.abs(TramoRadioFinal)))) +"km/h de m&aacute;ximo)";
+   Cadena=Cadena +". Giro de "+ ((TramoDistancia/TramoRadioFinal)/Math.PI*180).toPrecision(3) +"&deg;";
+  } else Cadena=Cadena +" recto";
+  Cadena=Cadena +", y le resta "+ Math.round(TramoDistancia) +" metros.";
+  Cadena=Cadena +" Siguiente tramo de "+ Math.round(TramoSiguienteDistancia) +" metros ";
+  if(TramoSiguienteRadioFinal==0) Cadena=Cadena +"es recto";
+  else {
+   Cadena=Cadena +"con radio de "+ Math.round(TramoSiguienteRadioFinal) +" metros ("+ Math.round(4.48*Math.sqrt(Math.abs(TramoSiguienteRadioFinal))) +"km/h de m&aacute;ximo)";
+   Cadena=Cadena +". Giro de "+ ((TramoSiguienteDistancia/TramoSiguienteRadioFinal)/Math.PI*180).toPrecision(3) +"&deg;";
+  }  
+  Cadena=Cadena +".<br>";
+  Cadena=Cadena +"Fuerza potencial: <i>"+ Math.round(FuerzaGenerada/1000) +"</i>kN (Resistencia: <i>"+ Math.round(FuerzaDeResistencia/1000) +"</i>kN, <i>"+ AceleracionDeResistencia.toPrecision(4) +"</i>m/s<sup>2</sup>, <i>"+ Math.round(PotenciaDeResistencia/1000) +"</i>kW).";
+  Cadena=Cadena +" Energia cinetica: <i>"+ Math.round(EnergiaGenerada/1000) +"</i>kJ.";
+  if(TramoRadioActual!=0) {
+   FuerzaGiroMaquina=((PesoLocomotora*(Math.pow(VelocidadReal,2)/TramoRadioActual))/(PesoLocomotora*9.80665));
+   FuerzaGiroVagona=((40000*(Math.pow(VelocidadReal,2)/TramoRadioActual))/(40000*9.80665));
+   Cadena=Cadena +" Fuerza de giro: "+ FuerzaGiroMaquina.toPrecision(2);
+   Cadena=Cadena +", "+ FuerzaGiroVagona.toPrecision(2);
+   if(TramoRadioActual==TramoRadioFinal && (Math.abs(FuerzaGiroMaquina)>=0.1 || Math.abs(FuerzaGiroVagona)>=0.1) && MensajeUltimaETCSgiro==MemoriaUltimaETCSgiro) MemoriaUltimaETCSgiro="<font color=red>actual curva de "+ Math.round(TramoRadioActual) +" metros de radio; con fuerzas: "+ FuerzaGiroMaquina.toPrecision(2) +" y "+ FuerzaGiroVagona.toPrecision(2) +"</font>";
+  } else if(TramoSiguienteRadioFinal!=0) { 
+   FuerzaGiroMaquina=((PesoLocomotora*(Math.pow(VelocidadReal,2)/TramoSiguienteRadioFinal))/(PesoLocomotora*9.80665));
+   FuerzaGiroVagona=((40000*(Math.pow(VelocidadReal,2)/TramoSiguienteRadioFinal))/(40000*9.80665));
+   Cadena=Cadena +" Fuerza del pr&oacute;ximo giro: ";
+   if(Math.abs(FuerzaGiroMaquina)>=0.1 || Math.abs(FuerzaGiroVagona)>=0.1) Cadena=Cadena +"<font color=red>";
+   Cadena=Cadena + FuerzaGiroMaquina.toPrecision(2);
+   Cadena=Cadena +", "+ FuerzaGiroVagona.toPrecision(2);
+   if(Math.abs(FuerzaGiroMaquina)>=0.1 || Math.abs(FuerzaGiroVagona)>=0.1) Cadena=Cadena +"</font>";
+   if((Math.abs(FuerzaGiroMaquina)>=0.1 || Math.abs(FuerzaGiroVagona)>=0.1) && MensajeUltimaETCSgiro==MemoriaUltimaETCSgiro) MemoriaUltimaETCSgiro="<font color=red>pr&oacute;xima curva de "+ Math.round(TramoSiguienteRadioFinal) +" metros de radio; se supera la fuerza lateral m&aacute;xima.</font>";
+  }
+  Cadena=Cadena +"<br>";
+  
+  PotenciaGenerada=PotenciaDeResistencia; //FuerzaEmpuje*VelocidadActual;
+
+  if(document.getElementById("velocidaddeseada").value!="") {
+   VelocidadDeseada=Number(document.getElementById("velocidaddeseada").value)/3.6;
+   var CuantaMas=Math.abs(((FuerzaParaEmpuje*VelocidadDeseada)-(FuerzaParaEmpuje*VelocidadActual))/(25*FactorIntervalo));
+   var CuantaMenos=Math.abs(((FuerzaParaEmpuje*VelocidadActual)-(FuerzaParaEmpuje*VelocidadDeseada))/(12.5*FactorIntervalo));
+   if((Math.abs(FuerzaGiroMaquina)>=0.1 || Math.abs(FuerzaGiroVagona)>=0.1) && Aceleracion>=-0.2 && document.getElementById("controlgiro").checked) {
+    CadenaDebug=CadenaDebug +"<br>#892: Control de velocidad en giro de curva";
+    if((VelocidadReal-VelocidadDeseada)<(2/3.6) && VelocidadDeseada>0) {
+     CadenaDebug=CadenaDebug +" !";
+     VelocidadDeseada-=(1/3.6); if(VelocidadDeseada<0) VelocidadDeseada=0;
+     document.getElementById("velocidaddeseada").value=Math.round(VelocidadDeseada*3.6);
+    }
+   }
+   CadenaDebug=CadenaDebug +"<br>#895: Control de velocidad: "+ (VelocidadReal-VelocidadDeseada).toPrecision(4) +"m/s";
+   if((VelocidadDeseada-VelocidadReal)>=0.28 || ((VelocidadReal==VelocidadDeseada) && Aceleracion<-0.1) && Aceleracion<AceleracionAdherencia) {
+    PonFreno(0,false);
+    if(Aceleracion<0) CuantaMas*=3;
+    else if(Aceleracion<0.1) CuantaMas*=2;
+    if((PotenciaDeseada-PotenciaActual)<500000 && VelocidadDeseada>0) {
+     CadenaDebug=CadenaDebug +"<br>#901: Mas potencia "+ parseInt(CuantaMas) +"W";
+     if(Aceleracion<-0.1) { CuantaMas*=4; CadenaDebug=CadenaDebug +" (x4)"; }
+     else if(Aceleracion<0) { CuantaMas*=3; CadenaDebug=CadenaDebug +" (x3)"; }
+     else if(Aceleracion<0.1) { CuantaMas*=2; CadenaDebug=CadenaDebug +" (x2)"; }
+     if(Aceleracion<AceleracionAdherencia) MasPotencia((2000/FactorIntervalo)+CuantaMas); else CadenaDebug=CadenaDebug +" (Limitado por adherencia)";
+    } else  CadenaDebug=CadenaDebug +"<br>#906: Freno liberado a 0kN";
+   } else if(VelocidadReal>VelocidadDeseada) {
+    if((VelocidadReal-VelocidadDeseada)>=2.22 && document.getElementById("controlfreno").checked) {
+     CadenaDebug=CadenaDebug +"<br>#909: Freno aplicado a 100kN";
+     if(Aceleracion>(-AceleracionAdherencia)) PonFreno(100000,false); else CadenaDebug=CadenaDebug +" (Limitado por adherencia)";
+    } else if((VelocidadReal-VelocidadDeseada)>=1.11 && document.getElementById("controlfreno").checked) {
+     CadenaDebug=CadenaDebug +"<br>#912: Freno aplicado a 50kn";
+     if(Aceleracion>(-AceleracionAdherencia)) PonFreno(50000,false); else CadenaDebug=CadenaDebug +" (Limitado por adherencia)";
+    } else if((VelocidadReal-VelocidadDeseada)<1.11 && Aceleracion<0 && document.getElementById("controlfreno").checked) {
+     CadenaDebug=CadenaDebug +"<br>#915: Freno aplicado a 20kN";
+     if(Aceleracion>(-AceleracionAdherencia)) PonFreno(20000,false); else CadenaDebug=CadenaDebug +" (Limitado por adherencia)";
+    } else if((VelocidadReal-VelocidadDeseada)<0.56 && document.getElementById("controlfreno").checked) {
+     CadenaDebug=CadenaDebug +"<br>#918: Freno Liberado a 0kN y menos potencia "+ parseInt(CuantaMenos) +"W";
+     PonFreno(0,false);
+     if(Aceleracion>0.1) { MenosPotencia(((2000/FactorIntervalo)+CuantaMenos)*12); CadenaDebug=CadenaDebug +" (x12)"; }
+     else if(Aceleracion>0.05) { MenosPotencia(((2000/FactorIntervalo)+CuantaMenos)*8); CadenaDebug=CadenaDebug +" (x8)"; }
+     else if(Aceleracion>0.01) { MenosPotencia(((2000/FactorIntervalo)+CuantaMenos)*4); CadenaDebug=CadenaDebug +" (x4)"; }
+     else if(Aceleracion>0.00) { MenosPotencia(((2000/FactorIntervalo)+CuantaMenos)*2); CadenaDebug=CadenaDebug +" (x2)"; }
+     else { MenosPotencia((2000/FactorIntervalo)+CuantaMenos); CadenaDebug=CadenaDebug +" "; }
+    } else if(Aceleracion>=0.1 && document.getElementById("controlfreno").checked)  {
+     CadenaDebug=CadenaDebug +"<br>#926: Freno aplicado a 10kN";
+     if(Aceleracion>(-AceleracionAdherencia)) PonFreno(10000,false);
+    } else {
+     CadenaDebug=CadenaDebug +"<br>#929: Menos Potencia "+ parseInt(CuantaMenos) +"W";
+     MenosPotencia((2000/FactorIntervalo)+CuantaMenos);
+    }
+   } else if(VelocidadDeseada==0 && document.getElementById("controlfreno").checked) {
+     CadenaDebug=CadenaDebug +"<br>#933: Freno aplicado a 100kN";
+     if(Aceleracion>(-AceleracionAdherencia)) PonFreno(100000,false);
+   } else if(document.getElementById("controlfreno").checked) {
+    CadenaDebug=CadenaDebug +"<br>#936: Freno liberado a 0kN";
+    PonFreno(0,false);
+    //if(VelocidadDeseada==0) PonPotencia(0);
+   }
+
+   if(VelocidadReal!=VelocidadDeseada) {
+    if(TiempoDeAccion>0) {
+     if(Math.abs(VelocidadReal-VelocidadDeseada)>1) {
+      TiempoDeAccion=0;
+      DistanciaDeAccion=0;
+     }
+    } else if(TiempoDeAccion<=0) {
+     TiempoDeAccion-=(Intervalo/1000);
+     DistanciaDeAccion+=(VelocidadActual/FactorIntervalo);
+     }
+   } else TiempoDeAccion=Math.abs(TiempoDeAccion);
+   CadenaDebug=CadenaDebug +"<br>#952: <b>Function ControlAutomatico();</b>";
+   Control_Automatico();
+   
+  } else VelocidadDeseada=0;
+  if(EstadoHombreMuerto==true) PonFreno(50000,false);
+  
+  if(PotenciaDeseada>0 && PotenciaActual==0) PotenciaActual=PotenciaDeseada;
+  else if(PotenciaDeseada==0 && PotenciaActual>0) PotenciaActual=PotenciaDeseada;
+  else if(PotenciaActual<PotenciaDeseada) PotenciaActual+=((2000/FactorIntervalo)+((PotenciaDeseada-PotenciaActual)/(5*FactorIntervalo)));
+  else if(PotenciaActual>PotenciaDeseada) PotenciaActual-=((2000/FactorIntervalo)+((PotenciaActual-PotenciaDeseada)/(2.5*FactorIntervalo)));
+  PotenciaConsumida+=((PotenciaActual+(PotenciaActual-PotenciaGenerada))/(3600*Intervalo));
+  var TextoConsumido="<i>"+ Math.round(PotenciaActual/735.35375) +"</i>CV";
+  TextoConsumido=TextoConsumido +"  (Necesaria: "+ Math.round((PotenciaActual-PotenciaGenerada)/1000) +"kW)";
+  TextoConsumido=TextoConsumido +"  [Para electrificacion de 3kV D.C.: "+ Math.round((PotenciaActual+(PotenciaActual-PotenciaGenerada))/3000) +"Amp.]";
+  TextoConsumido=TextoConsumido +"  ";
+  if(PotenciaConsumida>1000000000) TextoConsumido=TextoConsumido + Math.round(PotenciaConsumida/10000000)/100 +"GWh";
+  else if(PotenciaConsumida>1000000) TextoConsumido=TextoConsumido + Math.round(PotenciaConsumida/10000)/100 +"MWh";
+  else if(PotenciaConsumida>1000) TextoConsumido=TextoConsumido + Math.round(PotenciaConsumida/10)/100 +"kWh";
+  else TextoConsumido=TextoConsumido + Math.round(PotenciaConsumida) +"Wh";
+  document.getElementById("potenciaactual").value=Math.round(PotenciaActual/100)/10;
+  document.getElementById("caballosactual").innerHTML=TextoConsumido;
+  
+  var VelocidadMaximaPotencial=PotenciaMaxima/FuerzaEmpuje;
+  var VelocidadMaximaActual=PotenciaMaxima/FuerzaParaEmpuje;
+  var VelocidadMaximaFinal=PotenciaMaxima/FuerzaParaEmpujeFinal;
+  var Texto="(Maximo teorico: <i>"+ Math.min(140,Math.round(VelocidadMaximaPotencial*3.6)) +"</i> km/h";
+  if(VelocidadMaximaActual!=VelocidadMaximaPotencial) Texto=Texto + ", actual: <i>"+ Math.min(140,Math.round(VelocidadMaximaActual*3.6)) +"</i> km/h";
+  if(VelocidadMaximaFinal!=VelocidadMaximaPotencial && VelocidadMaximaFinal!=VelocidadMaximaActual && VelocidadMaximaFinal>=0) Texto=Texto + ", final: <i>"+ Math.min(140,Math.round(VelocidadMaximaFinal*3.6)) +"</i> km/h";
+  Texto=Texto + ")";
+  document.getElementById("velocidadmaxima").innerHTML=Texto;
+
+  Aceleracion=Math.sqrt(Math.abs(PotenciaActual-PotenciaGenerada)/Peso);
+  if(PotenciaActual<PotenciaGenerada) Aceleracion*=-1;
+  if(PotenciaGenerada>PotenciaActual) Aceleracion=AceleracionDeResistencia;
+  //Aceleracion-=(FrenoAplicado/Peso);
+  //Aceleracion-=AceleracionAire;
+  //Aceleracion+=AceleracionRampa;
+  Fuerza=Aceleracion*Peso;
+  var FuerzaPosible=FuerzaMaxima;
+  if(VelocidadActual>27) FuerzaPosible=FuerzaMinima;
+  else if(VelocidadActual>6) FuerzaPosible=FuerzaMaxima-((FuerzaMaxima-FuerzaMinima)/27.0*(VelocidadActual-6));
+  if(Fuerza>=FuerzaPosible) {
+   //Fuerza=FuerzaMaxima;
+   //Aceleracion=Fuerza/Peso;
+   PotenciaActual-=((2000/FactorIntervalo)+((PotenciaDeseada-PotenciaActual)/(5*FactorIntervalo)));
+   document.getElementById("potenciaactual").value=Math.round(PotenciaActual/100)/10;
+  }
+  if(Math.round(VelocidadActual)==0) {
+   if(Aceleracion>AceleracionAdherencia) Aceleracion-=AceleracionAdherencia;
+   //else Aceleracion=0;
+  } else {
+   if(Aceleracion>AceleracionEmpuje) Aceleracion-=AceleracionEmpuje;
+   //else Aceleracion=0;
+  }
+  
+  Distancia+=(VelocidadActual/FactorIntervalo);
+  VelocidadActual+=(Aceleracion/FactorIntervalo);
+  if(VelocidadActual<0) VelocidadActual=0;
+  document.getElementById("velocidadactual").value=Math.round(VelocidadActual*3.6);
+  
+  Cadena=Cadena +"Aceleracion/Desaceleracion aplicada: <i>"+ Aceleracion.toPrecision(4) +"</i>m/s<sup>2</sup>, ";
+  Cadena=Cadena +"Fuerza aplicada: <i>"+ Math.round(Fuerza/1000) +"</i>kN (M&aacute;xima: "+ Math.round(FuerzaPosible/1000) +"kN)";
+  var TiempoDeFrenado=(0-VelocidadActual)/Aceleracion;
+  var TiempoDeAccion=0;
+  var DistanciaDeAccion=0;
+  var TipoDeAccion="";
+  if(Aceleracion<0) {
+   var TiempoDeAccion=(0-VelocidadActual)/Aceleracion;
+   var DistanciaDeAccion=((VelocidadActual+0)/2)*TiempoDeAccion;
+   var TipoDeAccion="Frenado";
+  } else if(Aceleracion>0) {
+   var TiempoDeAccion=(VelocidadDeseada-VelocidadActual)/Aceleracion;
+   var DistanciaDeAccion=((VelocidadActual+VelocidadDeseada)/2)*TiempoDeAccion;
+   if(TiempoDeAccion<300) TipoDeAccion="Acelerando hasta los "+ parseInt(VelocidadDeseada*3.6) +"km/h.";
+  }
+  if(TipoDeAccion!="" && TiempoDeAccion>0) Cadena=Cadena +", "+ TipoDeAccion +" en "+ parseInt(TiempoDeAccion) +" segundos en "+ parseInt(DistanciaDeAccion) +" metros";
+  Cadena=Cadena +"<br>";
+  //Cadena=Cadena +"Potencia generada: <i>"+ Math.round(PotenciaGenerada/1000) +"</i>kW<br>";
+  Cadena=Cadena +"Velocidad actual: <i>"+ (VelocidadActual*3.6).toPrecision(4) +"</i>km/h&nbsp;(<i>"+ VelocidadActual.toPrecision(4) +"</i>m/s";
+  Cadena=Cadena +" [<i>"+ (VelocidadActual-VelocidadDeseada).toPrecision(4) +"</i>m/s]";
+  Cadena=Cadena +"). Distancia recorrida: <i>"+ (Distancia/1000).toPrecision(4) +"</i>km en ";
+  var Hor=Math.floor(TiempoTranscurrido/3600);
+  var Min=Math.floor((TiempoTranscurrido-(Hor*3600))/60);
+  var Seg=Math.floor(TiempoTranscurrido-(Hor*3600)-(Min*60));
+  if(Hor<10) Cadena=Cadena +"0"; Cadena=Cadena + Hor +":";
+  if(Min<10) Cadena=Cadena +"0"; Cadena=Cadena + Min +":";
+  if(Seg<10) Cadena=Cadena +"0"; Cadena=Cadena + Seg;
+  Cadena=Cadena +" con una media de "+ Math.floor((Distancia/1000)/(TiempoTranscurrido/3600)) +"km/h";
+  Cadena=Cadena +"<br>";
+
+  if(TiempoDeAccion>0 && TiempoDeAccion<600 && DistanciaDeAccion>0) {
+   Cadena=Cadena +"Tiempo de accion: <i>"+ Math.round(Math.abs(TiempoDeAccion)) +"</i>s. ";
+   if(VelocidadReal<VelocidadDeseada) Cadena=Cadena +"acelerando";
+   else if(VelocidadReal>VelocidadDeseada) Cadena=Cadena +"desacelerando";
+   else Cadena=Cadena +"realizado";
+   Cadena=Cadena +" en <i>"+ Math.round(DistanciaDeAccion) +"</i> metros.<br>";
+  } else Cadena=Cadena +"<br>";
+  
+  CadenaDebug=CadenaDebug +"<br>#1050: <b>Function Trayecto_OtroTren();</b>";
+  Trayecto_OtroTren()
+  
+  if(document.getElementById("veritinerario").checked) Cadena=Cadena +"Distancia recorrida del otro tren: <i>"+ (DistanciaOtroTren/1000).toPrecision(4) +"</i>km. a "+ Math.round(VelocidadOtroTren) +"km/h<br>";
+
+  document.getElementById("info").innerHTML="<font size=3>"+ Cadena +"</font>";
+  CadenaDebug=CadenaDebug +"<br>#1056: <b>Function Control_ETCS_GSM('panel1');</b>";                     Control_ETCS_GSM("panel1");
+  CadenaDebug=CadenaDebug +"<br>#1057: <b>Function Trayecto_VerSiguiente('panel2');</b>";                Trayecto_VerSiguiente("panel2");
+  CadenaDebug=CadenaDebug +"<br>#1058: <b>Function Trayecto_LugarActual(Longitud="+ Longitud +");</b>";  Trayecto_LugarActual(Longitud);
+  
+  Cadena="";
+  VelocidadReal*=3.6;
+  if(VelocidadSobrepasada!=0 && VelocidadReal==0) VelocidadSobrepasada=0;
+  if(VelocidadReal>(MemoriaUltimaVelocidad*1.1) || VelocidadSobrepasada==1) {
+   VelocidadSobrepasada=1;
+   Cadena=Cadena +"Velocidad "+ Math.round(VelocidadReal) + " excedida por se&ntilde;al a "+ Math.round(MemoriaUltimaVelocidad);
+   CadenaDebug=CadenaDebug +"<br>#1066: Freno aplicado a 100kN por excedida la velocidad por se&ntilde;al";
+   PonFreno(100000,true);
+  } else if(VelocidadReal>(MemoriaUltimoLimite*1.1) || VelocidadSobrepasada==2) {
+   VelocidadSobrepasada=2;
+   CadenaDebug=CadenaDebug +"<br>#1070: Freno aplicado a 100kN por excedida la velocidad por semaforo";
+   Cadena=Cadena +"Velocidad "+ Math.round(VelocidadReal) +" excedida por semaforo a "+ Math.round(MemoriaUltimoLimite);
+   PonFreno(100000,true);
+  } else if(TiempoHombreMuerto<-5) {
+   Cadena="H.M.";
+  } else if(EstadoHombreMuerto==false) {
+   Cadena="(Velocidad limitada a "+ Math.round(Math.min(MemoriaUltimaVelocidad,MemoriaUltimoLimite)) +"km/h";
+   if(MemoriaSiguienteLimite!=Math.round(Math.min(MemoriaUltimaVelocidad,MemoriaUltimoLimite))) Cadena=Cadena +", pr&oacute;ximo l&iacute;mite a "+ MemoriaSiguienteLimite +"km/h";
+   Cadena=Cadena +")";
+  }
+  if(Cadena!="") document.getElementById("avisos").innerHTML="<b>"+ Cadena +"</b>";
+  
+  document.getElementById("debug").innerHTML=CadenaDebug;
+  
+  TiempoTranscurrido+=(Intervalo/1000);
+ }
+ 
+ function NuevoMensaje(Mensaje,Previo) {
+  if(Mensaje=="") return;
+  var M=document.getElementById("mensajes").innerHTML;
+  var R=M.split("<br>");
+  var n=M.lastIndexOf("<br>");
+  if(n==-1 || R.length<10) n=M.length;
+  M=">"+ getHoyFechaHora() +": "+ Previo + Mensaje +"<br><font color='gray'>"+ M.substring(0,n) +"</font>";
+  document.getElementById("mensajes").innerHTML=M;
+  beep();
+  document.getElementById("tiempox10").checked=false;
+ }
+
+ function getHoyFechaHora() {
+  ahora=new Date();
+  return getFechaHora(ahora);
+ } 
+
+ function getFechaHora(fecha) {
+  CADENA=getDigitos(fecha.getDate(),2) +"-"+
+         getDigitos(fecha.getMonth()+1,2) +"-"+
+         getDigitos(fecha.getFullYear(),4) +" "+
+         getDigitos(fecha.getHours(),2) +":"+
+         getDigitos(fecha.getMinutes(),2) +":"+
+         getDigitos(fecha.getSeconds(),2);
+  return CADENA;
+ }
+
+ function getDigitos(valor,digitos) {
+  CADENA="";
+  for(d=1;d<=digitos;d++) CADENA=CADENA +"0";
+  CADENA=CADENA + valor;
+  CADENA=CADENA.substr(CADENA.length-digitos,digitos);
+  return CADENA;
+ }
+ 
+ function MasPotencia(Cuanta) {
+  var FrenoAplicado=Number(document.getElementById("frenoaplicado").value)*1000;
+  if(FrenoAplicado==0) {
+   var PotenciaMaxima=Number(document.getElementById("potenciamaxima").value)*1000;
+   var PotenciaActual=Number(document.getElementById("potenciaactual").value)*1000;
+   var PotenciaDeseada=Number(document.getElementById("potenciadeseada").value)*1000;
+   var Locomotoras=Number(document.getElementById("locomotoras").value);
+   PotenciaMaxima*=Locomotoras;
+   if(PotenciaDeseada==0) PotenciaDeseada=Math.max(200000,PotenciaGenerada);
+   else if(PotenciaDeseada<PotenciaMaxima && (PotenciaDeseada-PotenciaActual)<400000) PotenciaDeseada+=Cuanta;
+   if(PotenciaDeseada>PotenciaMaxima) PotenciaDeseada=PotenciaMaxima;
+   document.getElementById("potenciadeseada").value=Math.round(PotenciaDeseada/100)/10;
+  } else MenosFreno(10000);
+  //document.getElementById("frenoaplicado").value=0;
+ }
+ 
+ function MenosPotencia(Cuanta) {
+  var FrenoAplicado=Number(document.getElementById("frenoaplicado").value)*1000;
+  if(FrenoAplicado==0) {
+   var PotenciaMaxima=Number(document.getElementById("potenciamaxima").value)*1000;
+   var PotenciaActual=Number(document.getElementById("potenciaactual").value)*1000;
+   var PotenciaDeseada=Number(document.getElementById("potenciadeseada").value)*1000;
+   var Locomotoras=Number(document.getElementById("locomotoras").value);
+   PotenciaMaxima*=Locomotoras;
+   if(PotenciaDeseada>0) PotenciaDeseada-=Cuanta;
+   if(PotenciaDeseada<0) PotenciaDeseada=0;
+   document.getElementById("potenciadeseada").value=Math.round(PotenciaDeseada/100)/10;
+  } else MenosFreno(10000);
+  //document.getElementById("frenoaplicado").value=0;
+ }
+ 
+ function PonPotencia(Cuanta) {
+  var FrenoAplicado=Number(document.getElementById("frenoaplicado").value)*1000;
+  if(FrenoAplicado==0) {
+   document.getElementById("potenciadeseada").value=Math.round(Cuanta/100)/10;
+  } else MenosFreno(10000);
+  //document.getElementById("frenoaplicado").value=0;
+ }
+ 
+ function MasFreno(Cuanto) {
+  var PotenciaActual=Number(document.getElementById("potenciaactual").value)*1000;
+  if(PotenciaActual==0) {
+   var FrenoAplicado=Number(document.getElementById("frenoaplicado").value)*1000;
+   FrenoAplicado=Math.min(200000,FrenoAplicado+Cuanto);
+   document.getElementById("frenoaplicado").value=Math.round(FrenoAplicado/100)/10;
+  }
+  document.getElementById("potenciadeseada").value=0;
+  document.getElementById("potenciaactual").value=0;
+ }
+ 
+ function MenosFreno(Cuanto) {
+  var PotenciaActual=Number(document.getElementById("potenciaactual").value)*1000;
+  if(PotenciaActual==0) {
+   var FrenoAplicado=Number(document.getElementById("frenoaplicado").value)*1000;
+   FrenoAplicado=Math.max(0,FrenoAplicado-Cuanto);
+   document.getElementById("frenoaplicado").value=Math.round(FrenoAplicado/100)/10;
+  }
+  document.getElementById("potenciadeseada").value=0;
+  document.getElementById("potenciaactual").value=0;
+ }
+ 
+ function PonFreno(Cuanto,Inmediato) {
+  var FrenoAplicar=Cuanto;
+  var PotenciaActual=Number(document.getElementById("potenciaactual").value)*1000;
+  if(Inmediato==true) {
+   document.getElementById("frenoaplicado").value=Math.round(FrenoAplicar/100)/10;
+  } else if(PotenciaActual==0) {
+   var FrenoAplicado=Number(document.getElementById("frenoaplicado").value)*1000;
+   if((Cuanto-FrenoAplicado)>50000) FrenoAplicar=FrenoAplicado+5000;
+   else if((Cuanto-FrenoAplicado)>20000) FrenoAplicar=FrenoAplicado+2500;
+   else if((Cuanto-FrenoAplicado)>10000) FrenoAplicar=FrenoAplicado+1000;
+   else if((Cuanto-FrenoAplicado)>0) FrenoAplicar=FrenoAplicado+500;
+   else if((Cuanto-FrenoAplicado)<-50000) FrenoAplicar=FrenoAplicado-5000;
+   else if((Cuanto-FrenoAplicado)<-20000) FrenoAplicar=FrenoAplicado-2500;
+   else if((Cuanto-FrenoAplicado)<-10000) FrenoAplicar=FrenoAplicado-1000;
+   else if((Cuanto-FrenoAplicado)<0) FrenoAplicar=FrenoAplicado-500;
+   document.getElementById("frenoaplicado").value=Math.round(FrenoAplicar/100)/10;
+  }
+  if(FrenoAplicar>0) {
+   document.getElementById("potenciadeseada").value=0;
+   document.getElementById("potenciaactual").value=0;
+  }
+ }
+ 
+ function MasVelocidad(Cuanto) {
+  var VelocidadMaxima=Number(document.getElementById("maximavelocidad").value);
+  var VelocidadDeseada=Number(document.getElementById("velocidaddeseada").value);
+  VelocidadDeseada=Math.min(VelocidadMaxima,VelocidadDeseada+Cuanto);
+  document.getElementById("velocidaddeseada").value=Math.round(VelocidadDeseada);
+ }
+ 
+ function MenosVelocidad(Cuanto) {
+  var VelocidadDeseada=Number(document.getElementById("velocidaddeseada").value);
+  VelocidadDeseada=Math.max(0,VelocidadDeseada-Cuanto);
+  document.getElementById("velocidaddeseada").value=Math.round(VelocidadDeseada);
+ }
+ 
+ function PonVelocidad(Cuanto) {
+  var VelocidadMaxima=Number(document.getElementById("maximavelocidad").value);
+  document.getElementById("velocidaddeseada").value=Math.min(VelocidadMaxima,Math.round(Cuanto));
+ }
+ 
+ function SinVelocidad() {
+  document.getElementById("velocidaddeseada").value="";
+ }
+ 
+ function ConVelocidad() {
+  document.getElementById("velocidaddeseada").value=document.getElementById("velocidadactual").value;
+ }
+
+ function PonMaximaVelocidad(Cuanto) {
+  var VelocidadMaxima=Number(document.getElementById("maximavelocidad").value);
+  document.getElementById("maximavelocidad").value=Math.round(Cuanto);
+ }
+ 
+ function HombreMuerto_reset() {
+  if(document.getElementById("boton_HM").disabled==false) NuevoMensaje("H.M.: boton desactivado","");
+  document.getElementById("boton_HM").disabled=true;
+  TiempoHombreMuerto=60;
+  EstadoHombreMuerto=false;
+  document.getElementById("avisos").innerHTML="";
+ }
+
+ function boton_ASFA(Cual) {
+  document.getElementById("boton_ASFA_REC").disabled=true;
+  document.getElementById("boton_ASFA_PRP").disabled=true;
+  document.getElementById("boton_ASFA_AP").disabled=true;
+  document.getElementById("boton_ASFA_PN").disabled=true;
+ }
+ 
+ function beep() {
+  if(beepHecho==false) {
+   beepHecho=true;
+   var snd = new Audio("data:audio/wav;base64,//uQRAAAAWMSLwUIYAAsYkXgoQwAEaYLWfkWgAI0wWs/ItAAAGDgYtAgAyN+QWaAAihwMWm4G8QQRDiMcCBcH3Cc+CDv/7xA4Tvh9Rz/y8QADBwMWgQAZG/ILNAARQ4GLTcDeIIIhxGOBAuD7hOfBB3/94gcJ3w+o5/5eIAIAAAVwWgQAVQ2ORaIQwEMAJiDg95G4nQL7mQVWI6GwRcfsZAcsKkJvxgxEjzFUgfHoSQ9Qq7KNwqHwuB13MA4a1q/DmBrHgPcmjiGoh//EwC5nGPEmS4RcfkVKOhJf+WOgoxJclFz3kgn//dBA+ya1GhurNn8zb//9NNutNuhz31f////9vt///z+IdAEAAAK4LQIAKobHItEIYCGAExBwe8jcToF9zIKrEdDYIuP2MgOWFSE34wYiR5iqQPj0JIeoVdlG4VD4XA67mAcNa1fhzA1jwHuTRxDUQ//iYBczjHiTJcIuPyKlHQkv/LHQUYkuSi57yQT//uggfZNajQ3Vmz+Zt//+mm3Wm3Q576v////+32///5/EOgAAADVghQAAAAA//uQZAUAB1WI0PZugAAAAAoQwAAAEk3nRd2qAAAAACiDgAAAAAAABCqEEQRLCgwpBGMlJkIz8jKhGvj4k6jzRnqasNKIeoh5gI7BJaC1A1AoNBjJgbyApVS4IDlZgDU5WUAxEKDNmmALHzZp0Fkz1FMTmGFl1FMEyodIavcCAUHDWrKAIA4aa2oCgILEBupZgHvAhEBcZ6joQBxS76AgccrFlczBvKLC0QI2cBoCFvfTDAo7eoOQInqDPBtvrDEZBNYN5xwNwxQRfw8ZQ5wQVLvO8OYU+mHvFLlDh05Mdg7BT6YrRPpCBznMB2r//xKJjyyOh+cImr2/4doscwD6neZjuZR4AgAABYAAAABy1xcdQtxYBYYZdifkUDgzzXaXn98Z0oi9ILU5mBjFANmRwlVJ3/6jYDAmxaiDG3/6xjQQCCKkRb/6kg/wW+kSJ5//rLobkLSiKmqP/0ikJuDaSaSf/6JiLYLEYnW/+kXg1WRVJL/9EmQ1YZIsv/6Qzwy5qk7/+tEU0nkls3/zIUMPKNX/6yZLf+kFgAfgGyLFAUwY//uQZAUABcd5UiNPVXAAAApAAAAAE0VZQKw9ISAAACgAAAAAVQIygIElVrFkBS+Jhi+EAuu+lKAkYUEIsmEAEoMeDmCETMvfSHTGkF5RWH7kz/ESHWPAq/kcCRhqBtMdokPdM7vil7RG98A2sc7zO6ZvTdM7pmOUAZTnJW+NXxqmd41dqJ6mLTXxrPpnV8avaIf5SvL7pndPvPpndJR9Kuu8fePvuiuhorgWjp7Mf/PRjxcFCPDkW31srioCExivv9lcwKEaHsf/7ow2Fl1T/9RkXgEhYElAoCLFtMArxwivDJJ+bR1HTKJdlEoTELCIqgEwVGSQ+hIm0NbK8WXcTEI0UPoa2NbG4y2K00JEWbZavJXkYaqo9CRHS55FcZTjKEk3NKoCYUnSQ0rWxrZbFKbKIhOKPZe1cJKzZSaQrIyULHDZmV5K4xySsDRKWOruanGtjLJXFEmwaIbDLX0hIPBUQPVFVkQkDoUNfSoDgQGKPekoxeGzA4DUvnn4bxzcZrtJyipKfPNy5w+9lnXwgqsiyHNeSVpemw4bWb9psYeq//uQZBoABQt4yMVxYAIAAAkQoAAAHvYpL5m6AAgAACXDAAAAD59jblTirQe9upFsmZbpMudy7Lz1X1DYsxOOSWpfPqNX2WqktK0DMvuGwlbNj44TleLPQ+Gsfb+GOWOKJoIrWb3cIMeeON6lz2umTqMXV8Mj30yWPpjoSa9ujK8SyeJP5y5mOW1D6hvLepeveEAEDo0mgCRClOEgANv3B9a6fikgUSu/DmAMATrGx7nng5p5iimPNZsfQLYB2sDLIkzRKZOHGAaUyDcpFBSLG9MCQALgAIgQs2YunOszLSAyQYPVC2YdGGeHD2dTdJk1pAHGAWDjnkcLKFymS3RQZTInzySoBwMG0QueC3gMsCEYxUqlrcxK6k1LQQcsmyYeQPdC2YfuGPASCBkcVMQQqpVJshui1tkXQJQV0OXGAZMXSOEEBRirXbVRQW7ugq7IM7rPWSZyDlM3IuNEkxzCOJ0ny2ThNkyRai1b6ev//3dzNGzNb//4uAvHT5sURcZCFcuKLhOFs8mLAAEAt4UWAAIABAAAAAB4qbHo0tIjVkUU//uQZAwABfSFz3ZqQAAAAAngwAAAE1HjMp2qAAAAACZDgAAAD5UkTE1UgZEUExqYynN1qZvqIOREEFmBcJQkwdxiFtw0qEOkGYfRDifBui9MQg4QAHAqWtAWHoCxu1Yf4VfWLPIM2mHDFsbQEVGwyqQoQcwnfHeIkNt9YnkiaS1oizycqJrx4KOQjahZxWbcZgztj2c49nKmkId44S71j0c8eV9yDK6uPRzx5X18eDvjvQ6yKo9ZSS6l//8elePK/Lf//IInrOF/FvDoADYAGBMGb7FtErm5MXMlmPAJQVgWta7Zx2go+8xJ0UiCb8LHHdftWyLJE0QIAIsI+UbXu67dZMjmgDGCGl1H+vpF4NSDckSIkk7Vd+sxEhBQMRU8j/12UIRhzSaUdQ+rQU5kGeFxm+hb1oh6pWWmv3uvmReDl0UnvtapVaIzo1jZbf/pD6ElLqSX+rUmOQNpJFa/r+sa4e/pBlAABoAAAAA3CUgShLdGIxsY7AUABPRrgCABdDuQ5GC7DqPQCgbbJUAoRSUj+NIEig0YfyWUho1VBBBA//uQZB4ABZx5zfMakeAAAAmwAAAAF5F3P0w9GtAAACfAAAAAwLhMDmAYWMgVEG1U0FIGCBgXBXAtfMH10000EEEEEECUBYln03TTTdNBDZopopYvrTTdNa325mImNg3TTPV9q3pmY0xoO6bv3r00y+IDGid/9aaaZTGMuj9mpu9Mpio1dXrr5HERTZSmqU36A3CumzN/9Robv/Xx4v9ijkSRSNLQhAWumap82WRSBUqXStV/YcS+XVLnSS+WLDroqArFkMEsAS+eWmrUzrO0oEmE40RlMZ5+ODIkAyKAGUwZ3mVKmcamcJnMW26MRPgUw6j+LkhyHGVGYjSUUKNpuJUQoOIAyDvEyG8S5yfK6dhZc0Tx1KI/gviKL6qvvFs1+bWtaz58uUNnryq6kt5RzOCkPWlVqVX2a/EEBUdU1KrXLf40GoiiFXK///qpoiDXrOgqDR38JB0bw7SoL+ZB9o1RCkQjQ2CBYZKd/+VJxZRRZlqSkKiws0WFxUyCwsKiMy7hUVFhIaCrNQsKkTIsLivwKKigsj8XYlwt/WKi2N4d//uQRCSAAjURNIHpMZBGYiaQPSYyAAABLAAAAAAAACWAAAAApUF/Mg+0aohSIRobBAsMlO//Kk4soosy1JSFRYWaLC4qZBYWFRGZdwqKiwkNBVmoWFSJkWFxX4FFRQWR+LsS4W/rFRb/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////VEFHAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAU291bmRib3kuZGUAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMjAwNGh0dHA6Ly93d3cuc291bmRib3kuZGUAAAAAAAAAACU=");  
+   snd.play();
+  }
+ }
+
+ setTimeout("JavaScript:Trayecto_Rellena();",10);
+ setInterval("JavaScript:Calculo();",Intervalo);
+ setTimeout("JavaScript:NuevoMensaje('Inicio de simulacion, esperar via libre y orden de inicio de marcha, desde el control (ETCS).','');",10);
+ beep();
+</script>
+<body>
+<form name='reservas'>
+<table border=0 cellspacing=0 width="99%">
+
+<tr><td colspan=4><hr></td></tr>
+
+<tr>
+    <td width="13%"><b>Locomotoras:</b></td>
+    <td width="55%" colspan=2><input type=textbox id="locomotoras" name="locomotoras" size=5 maxsize=10 value="2"></td>
+    <td rowspan=5 width="32%" valign=top><span id="panel1"></span></td>
+</tr>
+
+<tr>
+    <td><b>Vagones con containers:</b></td>
+    <td colspan=2><input type=textbox id="vagones" name="vagones" size=5 maxsize=10 value="15">&nbsp; de 40Tn y 15 metros, con un m&aacute;ximo de 100km/h en curva o 75% del m&aacute;ximo.</td>
+</tr>
+
+<tr>
+    <td><b>Locomotora 253:</b></td>
+    <td colspan=2><input type=textbox id="locomotora" name="locomotora" size=5 maxsize=10 value="87000">&nbsp;kg.</td>
+</tr>
+
+<tr>
+    <td><b>Fuerza:</b></td>
+    <td colspan=2>desde&nbsp;<input type=textbox id="fuerzaminima" name="fuerzaminima" size=5 maxsize=10 value="100">&nbsp;kN
+    &nbsp;hasta&nbsp;<input type=textbox id="fuerzamaxima" name="fuerzamaxima" size=5 maxsize=10 value="300">&nbsp;kN&nbsp;(hasta los 20km/h)
+    </td>
+</tr>
+
+<tr>
+    <td><b>Potencia maxima:</b></td>
+    <td><input type=textbox id="potenciamaxima" name="potenciamaxima" size=5 maxsize=10 value="5400">&nbsp;kW</td>
+    <td colspan=1><span id="velocidadmaxima"></span></td>
+</tr>
+
+<tr><td colspan=4><hr></td></tr>
+
+<tr>
+    <td><b>Friccion de adherencia:</b></td>
+    <td colspan=1><input type=textbox id="adherencia" name="adherencia" size=5 maxsize=10 value="0.1"></td>
+    <td rowspan=3 valign=middle>
+    &nbsp;&nbsp;<input type=button id="boton_HM" value="  H.M.  " disabled onClick="JavaScript:HombreMuerto_reset();">
+    &nbsp;&nbsp;<input type=button id="boton_ASFA_REC" value="  REC.  " disabled onClick="JavaScript:boton_ASFA('REC');">
+    &nbsp;&nbsp;<input type=button id="boton_ASFA_PRP" value="  PRP  " disabled onClick="JavaScript:boton_ASFA('PRP');">
+    &nbsp;&nbsp;<input type=button id="boton_ASFA_AP" value="  AP  " disabled onClick="JavaScript:boton_ASFA('AP');">
+    &nbsp;&nbsp;<input type=button id="boton_ASFA_PN" value="  PN  " disabled onClick="JavaScript:boton_ASFA('PN');">
+    </td>
+    <td rowspan=4 width="25%" valign=top><span id="panel2"></span></td>
+</tr>
+
+<tr>
+    <td><b>Friccion de rozamiento:</b></td>
+    <td colspan=1><input type=textbox id="rozamiento" name="rozamiento" size=5 maxsize=10 value="0.03"></td>
+</tr>
+
+<tr>
+    <td><b>Friccion del aire:</b></td>
+    <td colspan=1><input type=textbox id="aire" name="aire" size=5 maxsize=10 value="0.9"></td>
+</tr>
+
+<tr>
+    <td><b>Velocidad m&aacute;xima:</b></td>
+    <td colspan=1><input type=textbox id="maximavelocidad" name="maximavelocidad" size=5 maxsize=10 value="100">&nbsp;km/h</td>
+    <td colspan=1>&nbsp;
+        <input type=button value="0" onClick="JavaScript:PonMaximaVelocidad(0); HombreMuerto_reset();">
+        <input type=button value="5" onClick="JavaScript:PonMaximaVelocidad(5); HombreMuerto_reset();">
+        <input type=button value="15" onClick="JavaScript:PonMaximaVelocidad(15); HombreMuerto_reset();">
+        <input type=button value="30" onClick="JavaScript:PonMaximaVelocidad(30); HombreMuerto_reset();">
+        <input type=button value="50" onClick="JavaScript:PonMaximaVelocidad(50); HombreMuerto_reset();">
+        <input type=button value="60" onClick="JavaScript:PonMaximaVelocidad(60); HombreMuerto_reset();">
+        <input type=button value="70" onClick="JavaScript:PonMaximaVelocidad(70); HombreMuerto_reset();">
+        <input type=button value="80" onClick="JavaScript:PonMaximaVelocidad(80); HombreMuerto_reset();">
+        <input type=button value="90" onClick="JavaScript:PonMaximaVelocidad(90); HombreMuerto_reset();">
+        <input type=button value="100" onClick="JavaScript:PonMaximaVelocidad(100); HombreMuerto_reset();">
+        <input type=button value="120" onClick="JavaScript:PonMaximaVelocidad(120); HombreMuerto_reset();">
+        <input type=button value="140" onClick="JavaScript:PonMaximaVelocidad(140); HombreMuerto_reset();">
+        &nbsp</td>
+</tr>
+
+<tr><td colspan=4><hr></td></tr>
+
+<tr>
+    <td><b>Potencia deseada:</b></td>
+    <td><input type=textbox id="potenciadeseada" name="potenciadeseada" size=5 maxsize=10 value="0">&nbsp;kW</td>
+    <td>&nbsp;
+        <input type=button value="-100" onClick="JavaScript:MenosPotencia(100000); HombreMuerto_reset();">
+        <input type=button value="-10" onClick="JavaScript:MenosPotencia(10000); HombreMuerto_reset();">
+        <input type=button value="0" onClick="JavaScript:PonPotencia(0); HombreMuerto_reset();">
+        <input type=button value="+10" onClick="JavaScript:MasPotencia(10000); HombreMuerto_reset();">
+        <input type=button value="+100" onClick="JavaScript:MasPotencia(100000); HombreMuerto_reset();">
+        &nbsp</td>
+    <td rowspan=3>
+        <input type=checkbox id="controlatc" name="controlatc">&nbsp;Control autom&aacute;tico velocidad (ATC)&nbsp;
+        <input type=checkbox id="controlasfa" name="controlasfa">&nbsp;ASFA&nbsp;&nbsp;
+        <input type=checkbox id="controllzb" name="controllzb">&nbsp;LZB&nbsp;&nbsp;
+        <input type=checkbox id="controlgiro" name="controlgiro">&nbsp;GIRO&nbsp;&nbsp;
+        <input type=checkbox id="controlhm" name="controlhm" checked>&nbsp;H.M.&nbsp;<br>
+        <input type=checkbox id="verproxima" name="verproxima">&nbsp;Ver proxima se&ntilde;al/evento (ETCS)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        <input type=checkbox id="controletcs" name="controletcs">&nbsp;ETCS&nbsp;&nbsp;
+        <input type=checkbox id="controletcs2" name="controletcs2">&nbsp;ETCS+&nbsp;<br>
+        <input type=checkbox id="controlfreno" name="controlfreno">&nbsp;Control autom&aacute;tico de frenado&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        <input type=checkbox id="curvadefrenado" name="curvadefrenado">&nbsp;Curva de frenado&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        <input type=checkbox id="controlauto" name="controlauto">&nbsp;AUTO&nbsp;<br>
+        <input type=checkbox id="veritinerario" name="veritinerario">&nbsp;Ver itinerario y el otro tren&nbsp;
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        <input type=checkbox id="pausa" name="pausa" checked>&nbsp;PAUSA&nbsp;
+        <input type=checkbox id="tiempox10" name="tiempox10" title="Activado el tiempo corre 10 veces mas rapido">&nbsp;Tx10&nbsp;
+    </td>
+</tr>
+
+<tr>
+    <td><b>Freno aplicado:</b></td>
+    <td><input type=textbox id="frenoaplicado" name="frenoaplicado" size=5 maxsize=10 value="100">&nbsp;kN</td>
+    <td>&nbsp;
+        <input type=button value="-100" onClick="JavaScript:MenosFreno(10000); HombreMuerto_reset();">
+        <input type=button value="-10" onClick="JavaScript:MenosFreno(1000); HombreMuerto_reset();">
+        <input type=button value="0" onClick="JavaScript:PonFreno(0,true); HombreMuerto_reset();">
+        <input type=button value="+10" onClick="JavaScript:MasFreno(1000); HombreMuerto_reset();">
+        <input type=button value="+100" onClick="JavaScript:MasFreno(10000); HombreMuerto_reset();">
+        &nbsp;
+        <input type=button value="LIBERA" onClick="JavaScript:PonFreno(0,true); HombreMuerto_reset();">
+        <input type=button value="BLOQUEA" onClick="JavaScript:PonFreno(200000,true); HombreMuerto_reset();">
+        &nbsp;
+        <input type=button value="10%" onClick="JavaScript:PonFreno( 20000,true); HombreMuerto_reset();">
+        <input type=button value="25%" onClick="JavaScript:PonFreno( 50000,true); HombreMuerto_reset();">
+        <input type=button value="50%" onClick="JavaScript:PonFreno(100000,true); HombreMuerto_reset();">
+        <input type=button value="75%" onClick="JavaScript:PonFreno(150000,true); HombreMuerto_reset();">
+        &nbsp</td>
+</tr>
+
+<tr>
+    <td><b>Velocidad deseada:</b></td>
+    <td><input type=textbox id="velocidaddeseada" name="velocidaddeseada" size=5 maxsize=10 value="">&nbsp;km/h</td>
+    <td>&nbsp;
+        <input type=button value="-10" onClick="JavaScript:MenosVelocidad(10); HombreMuerto_reset();">
+        <input type=button value="-1" onClick="JavaScript:MenosVelocidad(1); HombreMuerto_reset();">
+        <input type=button value="0" onClick="JavaScript:PonVelocidad(0); HombreMuerto_reset();">
+        <input type=button value="+1" onClick="JavaScript:MasVelocidad(1); HombreMuerto_reset();">
+        <input type=button value="+10" onClick="JavaScript:MasVelocidad(10); HombreMuerto_reset();">
+        &nbsp;
+        <input type=button value="SIN" onClick="JavaScript:SinVelocidad(); HombreMuerto_reset();">
+        <input type=button value="CON" onClick="JavaScript:ConVelocidad(); HombreMuerto_reset();">
+        &nbsp;
+        <input type=button value="5" onClick="JavaScript:PonVelocidad(5); HombreMuerto_reset();">
+        <input type=button value="15" onClick="JavaScript:PonVelocidad(15); HombreMuerto_reset();">
+        <input type=button value="30" onClick="JavaScript:PonVelocidad(30); HombreMuerto_reset();">
+        <input type=button value="50" onClick="JavaScript:PonVelocidad(50); HombreMuerto_reset();">
+        <input type=button value="60" onClick="JavaScript:PonVelocidad(60); HombreMuerto_reset();">
+        <input type=button value="80" onClick="JavaScript:PonVelocidad(80); HombreMuerto_reset();">
+        <input type=button value="100" onClick="JavaScript:PonVelocidad(100); HombreMuerto_reset();">
+        <input type=button value="120" onClick="JavaScript:PonVelocidad(120); HombreMuerto_reset();">
+        <input type=button value="140" onClick="JavaScript:PonVelocidad(140); HombreMuerto_reset();">
+        &nbsp;</td>
+</tr>
+
+<tr><td colspan=4><hr></td></tr>
+
+<tr>
+    <td><b>Potencia actual:</b></td>
+    <td><input type=textbox id="potenciaactual" name="potenciaactual" size=5 maxsize=10 value="0">&nbsp;kW</td>
+    <td>&nbsp;<span id="caballosactual"></span></td>
+    <td>&nbsp;<span id="lugaractual"></span></td>
+</tr>
+
+<tr>
+    <td><b>Velocidad actual:</b></td>
+    <td><input type=textbox id="velocidadactual" name="velocidadactual" size=5 maxsize=10 value="0">&nbsp;km/h</td>
+    <td>&nbsp;<span id="avisos">&nbsp;</span></td>
+    <td>&nbsp;<span id="panel4">&nbsp;</span></td>
+</tr>
+
+<tr><td colspan=4><hr></td></tr>
+
+<tr>
+    <td colspan=3 valign=top><span id="info"></span></td>
+    <td width="25%" valign=top><span id="panel3">
+    <b>Recomendaciones, seg&uacute;n el nivel de conducci&oacute;n:</b><br>
+    <b>1.</b>&nbsp;Activar el ATC; la velocidad que se le pide a la m&aacute;quina se amolda a las circunstancias y eventos del trayecto.<br>
+    <b>2.</b>&nbsp;Activar el ASFA; se tiene un control por balizas ASFA de los sem&aacute;foros.<br>
+    <b>3.</b>&nbsp;Activar el LZB; se tiene informaci&oacute;n desde la via de las se&ntilde;ales y l&iacute;mites, por emisi&oacute;n de antena<br>
+    <b>4.</b>&nbsp;Activar el GIRO; la velocidad se adapta al radio de giro de la pr&oacute;xima curva. <br>
+    <b>5.</b>&nbsp;Activar el ETCS; recibiremos el estado de los eventos y se&ntilde;ales pr&oacute;ximas. (ETCS/GSM-R)<br>
+    <b>6.</b>&nbsp;Activar el control automatico de frenado; el freno actuar&aacute; para amoldarse a la velocidad deseada. Si no est&aacute; activado habr&aacute; que accionar el freno manualmente. La potencia si que se adecua autom&aacute;ticamente seg&uacute;n la velocidad deseada y la actual.<br>
+    <b>7.</b>&nbsp;Activar el control ETCS; los eventos pr&oacute;ximos amoldar&aacute;n las condiciones de conducci&oacute;n.<br>
+    <b>8.</b>&nbsp;Activar el control ETCS/ATC de nivel 2; las condiciones de conducci&oacute;n ser&aacute;n para m&aacute;xima velocidad.<br>
+    <b>9.</b>&nbsp;Activar el control de curva de frenado hace m&aacute;s suave la disminuci&oacute;n de velocidad y mejor control del tren.<br>
+    <b>10.</b>&nbsp;Muy atentos al bot&oacute;n de <b>Hombre Muerto</b> (H.M.), si no se pulsa en 5 segundos desde que se activa, la m&aacute;quina se parar&aacute;.<br>
+    </span></td>
+</tr>
+
+<tr><td colspan=4><hr></td></tr>
+
+<tr>
+    <td colspan=4 align=left valign=top>
+        <table border=0 width=100%>
+            <tr><td align=left valign=top width=50%><span id="mensajes">>Delante nuestro hay un tren de pasajeros.<br>>(Mensajes ASFA, ATC y ETCS)<br>><br>><br>><br>><br>><br>><br>></span></td>
+                <td align=left valign=top width=50%><span id="debug"><b>Debug:</b></span></td></tr></table></td>
+</tr>
+
+<tr><td colspan=4><hr></td></tr>
+
+</table>
+</body>
+</html>
